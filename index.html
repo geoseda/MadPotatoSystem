@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mad Potato Management System</title>
+  <style>
+    :root {
+      --mp-green: #15803d;
+      --mp-green-dark: #0f5127;
+      --mp-yellow: #facc15;
+      --mp-yellow-bg: #fef08a;
+      --mp-yellow-card: #fef9c3;
+      --card-white: #ffffff;
+      --text-dark: #1f2937;
+      --text-muted: #4b5563;
+      --border-color: #e5e7eb;
+      --sidebar-width: 220px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background-color: var(--mp-yellow-bg);
+      color: var(--text-dark);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--mp-green);
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      color: #ffffff;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    .brand {
+      padding: 0 16px 20px 16px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 16px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      background-color: var(--mp-yellow);
+      color: #000;
+      font-weight: 900;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 18px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-item button {
+      width: 100%;
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.2s, border-left 0.2s;
+    }
+
+    .nav-item.active button, .nav-item button:hover {
+      background-color: var(--mp-green-dark);
+      border-left: 5px solid var(--mp-yellow);
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background-color: var(--mp-yellow-bg);
+      overflow-y: auto;
+    }
+
+    .header {
+      background-color: var(--mp-yellow);
+      border-radius: 8px;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    .clock-badge {
+      background-color: #ffffff;
+      color: var(--mp-green-dark);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      border: 1px solid rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .branch-badge {
+      background-color: var(--mp-green);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .sync-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      background-color: #e2e8f0;
+      color: #475569;
+    }
+
+    .sync-online {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+
+    .sync-busy {
+      background-color: #fef3c7;
+      color: #b45309;
+    }
+
+    .page-view {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .page-view.active {
+      display: flex;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background-color: var(--card-white);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--text-dark);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-box {
+      background-color: var(--mp-yellow-card);
+      border: 1px solid var(--mp-yellow);
+      border-left: 5px solid var(--mp-green);
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .summary-header {
+      font-weight: bold;
+      color: var(--mp-green-dark);
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .benchmark-legend {
+      display: flex;
+      gap: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 6px 10px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .chart-container {
+      height: 220px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 20px 10px 10px 10px;
+      background-color: #fafafa;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .chart-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      height: 100%;
+      justify-content: flex-end;
+      flex: 1;
+      max-width: 60px;
+    }
+
+    .chart-bar {
+      width: 70%;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.4s ease;
+      position: relative;
+    }
+
+    .bar-deficit { background-color: #ef4444; }
+    .bar-bad { background-color: #f97316; }
+    .bar-below-avg { background-color: #eab308; }
+    .bar-acceptable { background-color: #22c55e; }
+    .bar-successful { background-color: #0284c7; }
+
+    .chart-bar-value {
+      position: absolute;
+      top: -16px;
+      font-size: 9px;
+      font-weight: bold;
+      width: 100%;
+      text-align: center;
+      color: var(--text-dark);
+    }
+
+    .chart-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .chat-container {
+      height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #fafafa;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .message {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      max-width: 90%;
+      line-height: 1.3;
+    }
+
+    .user-msg {
+      background-color: var(--mp-green);
+      color: #fff;
+      align-self: flex-end;
+    }
+
+    .bot-msg {
+      background-color: var(--mp-yellow-card);
+      border: 1px solid var(--mp-yellow);
+      color: var(--text-dark);
+      align-self: flex-start;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+
+    .send-btn {
+      background-color: var(--mp-green);
+      color: #fff;
+      border: none;
+      padding: 0 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .logbook-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f9fafb;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .date-picker-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .date-input, .select-control {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--text-dark);
+      outline: none;
+    }
+
+    .notebook-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 650px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .logbook-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .logbook-table th {
+      background-color: var(--mp-green);
+      color: #fff;
+      text-align: center;
+      padding: 6px 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      border: 1px solid var(--mp-green-dark);
+    }
+
+    .logbook-table td {
+      padding: 4px 8px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .item-label {
+      font-weight: bold;
+      width: 80px;
+      background-color: #f3f4f6;
+    }
+
+    .grid-input {
+      width: 100%;
+      padding: 4px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .grid-input:focus {
+      border-color: var(--mp-green);
+      outline: none;
+      background-color: #f0fdf4;
+    }
+
+    .sales-box-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      background-color: var(--mp-yellow-card);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--mp-yellow);
+    }
+
+    .btn-action {
+      background-color: var(--mp-green);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-action:hover {
+      background-color: var(--mp-green-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <span class="brand-icon">MP</span>
+        <span class="brand-title">MAD POTATO</span>
+      </div>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item active" id="nav-dashboard">
+        <button onclick="switchTab('dashboard')">🏠 Dashboard</button>
+      </li>
+      <li class="nav-item" id="nav-forecast">
+        <button onclick="switchTab('forecast')">📈 Sales Forecast</button>
+      </li>
+      <li class="nav-item" id="nav-logbook">
+        <button onclick="switchTab('logbook')">📝 Digitized Logbook</button>
+      </li>
+      <li class="nav-item" id="nav-settings">
+        <button onclick="switchTab('settings')">⚙️ Settings</button>
+      </li>
+    </ul>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="header-title">
+        <h1 id="page-header-title">Mad Potato Management System: AI Sales Forecasting & Inventory Dashboard</h1>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="realtime-clock" class="clock-badge">🕒 Loading Clock...</span>
+        <span id="sync-status" class="sync-badge">Connecting...</span>
+        <span class="branch-badge">Teresa Branch</span>
+      </div>
+    </header>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="page-dashboard" class="page-view active">
+      <div class="grid-2">
+        <section class="card">
+          <div class="card-title">
+            <span>AI Sales Analytics Overview</span>
+            <span style="font-size: 11px; color: var(--mp-green-dark);" id="dashboard-trend-badge">Meta Prophet Engine</span>
+          </div>
+          <div class="summary-box">
+            <div class="summary-header">🤖 Meta Prophet Executive Summary</div>
+            <span id="dashboard-summary-text">
+              Connecting to Meta Prophet forecasting backend...
+            </span>
+          </div>
+
+          <div class="benchmark-legend">
+            <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div> Deficit (&lt;₱2k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#f97316;"></div> Underperforming (&lt;₱3k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#22c55e;"></div> Acceptable (₱3.8k-₱4.8k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div> High-Performing (&gt;₱5k)</div>
+          </div>
+
+          <div class="chart-container" id="dashboard-chart"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <span>Sales Forecast Assistant</span>
+          </div>
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+              <div class="message bot-msg">Hello! Ask me about <strong>tomorrow's prediction</strong>, <strong>next week</strong>, or business <strong>benchmarks</strong>!</div>
+            </div>
+            <div class="chat-input-area">
+              <input type="text" id="chat-input" class="chat-input" placeholder="Ask e.g. 'What is tomorrow's forecast?'..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+              <button class="send-btn" onclick="sendChatMessage()">Send</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- SALES FORECAST PAGE -->
+    <div id="page-forecast" class="page-view">
+      <div class="grid-1">
+        <section class="card">
+          <div class="card-title">
+            <span>Detailed AI Sales Forecasting</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label for="forecast-period" style="font-size: 12px; font-weight: bold;">Forecast View:</label>
+              <select id="forecast-period" class="select-control" onchange="renderForecastPage()">
+                <option value="tomorrow">Tomorrow's Forecast</option>
+                <option value="next_week" selected>Next Week (7-Day Projection)</option>
+                <option value="next_month">Next Month (4-Week Projection)</option>
+              </select>
+            </div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-header">📊 Demand Trends & Target Analysis</div>
+            <span id="forecast-analysis-text">
+              Calculating Meta Prophet forecast model based on daily sales inputs...
+            </span>
+          </div>
+
+          <div class="benchmark-legend">
+            <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div> Deficit (&lt;₱2k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#f97316;"></div> Underperforming (&lt;₱3k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#22c55e;"></div> Acceptable (₱3.8k-₱4.8k)</div>
+            <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div> High-Performing (&gt;₱5k)</div>
+          </div>
+
+          <div class="chart-container" style="height: 240px;" id="forecast-page-chart"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- DIGITIZED LOGBOOK PAGE -->
+    <div id="page-logbook" class="page-view">
+      <div class="grid-1">
+        <section class="card">
+          <div class="card-title">
+            <span>Digitized Handwritten Logbook Page</span>
+            <button class="btn-action" onclick="saveLogbookData()">💾 Save Logbook Entry</button>
+          </div>
+
+          <div class="logbook-toolbar">
+            <div class="date-picker-group">
+              <label for="log-date">📅 Select Log Date:</label>
+              <input type="date" id="log-date" class="date-input" onchange="loadLogForDate()">
+            </div>
+            <span id="log-status" style="font-size: 11px; color: var(--mp-green-dark); font-weight: bold;">
+              Viewing log for selected date
+            </span>
+          </div>
+
+          <div class="notebook-container">
+            <table class="logbook-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">ITEM</th>
+                  <th>STARTING</th>
+                  <th>END</th>
+                  <th>USAGE</th>
+                </tr>
+              </thead>
+              <tbody id="top-table-body"></tbody>
+            </table>
+
+            <table class="logbook-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">ITEM</th>
+                  <th>OPENING</th>
+                  <th>STOCKS</th>
+                  <th>CLOSING</th>
+                </tr>
+              </thead>
+              <tbody id="bottom-table-body"></tbody>
+            </table>
+
+            <div class="sales-box-container">
+              <label for="total-sales-input" style="font-size: 13px; font-weight: bold;">💰 Total Sales For The Day (₱):</label>
+              <input type="number" id="total-sales-input" class="grid-input" style="width: 180px; font-size: 14px; text-align: right;" placeholder="3800">
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page-view">
+      <div class="grid-1">
+        <section class="card">
+          <div class="card-title">
+            <span>System Settings</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12px;">
+            <label><strong>Branch Name:</strong> Teresa Branch</label>
+            <div>
+              <label style="display: block; margin-bottom: 4px;"><strong>Google Sheets Web App URL:</strong></label>
+              <input type="text" id="script-url-input" class="grid-input" style="text-align: left; width: 100%; max-width: 550px; padding: 6px;" placeholder="Paste Web App URL here...">
+              <button class="btn-action" style="margin-top: 6px;" onclick="saveApiUrl()">Save Web App URL</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const API_BASE_URL = 'http://127.0.0.1:5000/api';
+    let GOOGLE_SCRIPT_URL = localStorage.getItem('mad_potato_api_url') || '';
+
+    const topItems    = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC', 'F', 'CP', 'JJ', 'BW'];
+    const bottomItems = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC'];
+
+    const baseStocksMap = {};
+    let cachedDB = {};
+
+    function getBarClass(amount) {
+      if (amount < 2000) return 'bar-deficit';
+      if (amount < 3000) return 'bar-bad';
+      if (amount < 3800) return 'bar-below-avg';
+      if (amount <= 4800) return 'bar-acceptable';
+      return 'bar-successful';
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+      const clockElem = document.getElementById('realtime-clock');
+      if (clockElem) clockElem.textContent = `🕒 ${now.toLocaleString('en-US', options)}`;
+    }
+
+    function parseArithmeticExpression(valStr) {
+      if (typeof valStr === 'number') return valStr;
+      if (!valStr) return 0;
+      const str = String(valStr).replace(/\s+/g, '');
+      if (!str) return 0;
+      const tokens = str.match(/([+-]?[^+-]+)/g);
+      if (!tokens) return parseFloat(str) || 0;
+      return tokens.reduce((total, token) => total + (parseFloat(token) || 0), 0);
+    }
+
+    function setSyncStatus(text, type) {
+      const el = document.getElementById('sync-status');
+      if (!el) return;
+      el.textContent = text;
+      el.className = 'sync-badge ' + (type === 'online' ? 'sync-online' : type === 'busy' ? 'sync-busy' : '');
+    }
+
+    async function fetchBackendLogs() {
+      setSyncStatus('Connecting...', 'busy');
+      try {
+        const res = await fetch(`${API_BASE_URL}/logs`);
+        if (res.ok) {
+          cachedDB = await res.json();
+          setSyncStatus('Meta Prophet Active', 'online');
+        } else {
+          setSyncStatus('Backend Offline', '');
+        }
+      } catch (err) {
+        setSyncStatus('Backend Offline', '');
+      }
+    }
+
+    async function fetchProphetForecast(period = 'next_week') {
+      try {
+        const res = await fetch(`${API_BASE_URL}/forecast?period=${period}`);
+        if (res.ok) {
+          const data = await res.json();
+          return data.forecast || [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch Meta Prophet forecast:', err);
+      }
+      return [];
+    }
+
+    function buildLogbookUI() {
+      const topTbody = document.getElementById('top-table-body');
+      topTbody.innerHTML = '';
+      topItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="item-label">${item}</td>
+          <td><input type="text" class="grid-input" id="starting-${item}" oninput="onStartingChange('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="end-${item}" oninput="calculateRow('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="usage-${item}"></td>
+        `;
+        topTbody.appendChild(tr);
+      });
+
+      const bottomTbody = document.getElementById('bottom-table-body');
+      bottomTbody.innerHTML = '';
+      bottomItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="item-label">${item}</td>
+          <td><input type="text" class="grid-input" id="opening-${item}" oninput="onOpeningChange('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="stocks-${item}" oninput="onStocksChange('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="closing-${item}" oninput="calculateRow('${item}')"></td>
+        `;
+        bottomTbody.appendChild(tr);
+      });
+    }
+
+    function onStartingChange(item) {
+      const startEl   = document.getElementById(`starting-${item}`);
+      const openingEl = document.getElementById(`opening-${item}`);
+      const stocksEl  = document.getElementById(`stocks-${item}`);
+
+      const currentStart = parseArithmeticExpression(startEl ? startEl.value : 0);
+      const currentOpening = parseArithmeticExpression(openingEl ? openingEl.value : 0);
+
+      if (stocksEl) {
+        const calculatedStock = Math.max(0, currentStart - currentOpening);
+        baseStocksMap[item] = calculatedStock;
+        
+        if (openingEl && (openingEl.value.includes('+') || openingEl.value.includes('-'))) {
+          onOpeningChange(item);
+        } else {
+          stocksEl.value = calculatedStock;
+        }
+      }
+      calculateRow(item);
+    }
+
+    function onStocksChange(item) {
+      const stocksEl = document.getElementById(`stocks-${item}`);
+      if (stocksEl) baseStocksMap[item] = parseFloat(stocksEl.value) || 0;
+      calculateRow(item);
+    }
+
+    function onOpeningChange(item) {
+      const openingEl = document.getElementById(`opening-${item}`);
+      const stocksEl  = document.getElementById(`stocks-${item}`);
+      const startEl   = document.getElementById(`starting-${item}`);
+      if (!openingEl || !stocksEl) return;
+
+      const rawVal = openingEl.value.trim();
+      const currentStart = parseArithmeticExpression(startEl ? startEl.value : 0);
+      
+      const baseOpeningVal = parseArithmeticExpression(rawVal.split(/[+-]/)[0]);
+      baseStocksMap[item] = Math.max(0, currentStart - baseOpeningVal);
+
+      const totalOpening = parseArithmeticExpression(rawVal);
+      const adjustment = totalOpening - baseOpeningVal;
+
+      const newStock = baseStocksMap[item] - adjustment;
+      stocksEl.value = newStock >= 0 ? newStock : 0;
+      calculateRow(item);
+    }
+
+    function calculateRow(item) {
+      const stocksEl  = document.getElementById(`stocks-${item}`);
+      const closingEl = document.getElementById(`closing-${item}`);
+      const endEl     = document.getElementById(`end-${item}`);
+      const startEl   = document.getElementById(`starting-${item}`);
+      const usageEl   = document.getElementById(`usage-${item}`);
+
+      if (stocksEl && closingEl && endEl) {
+        const stocks = parseFloat(stocksEl.value) || 0;
+        const closing = parseFloat(closingEl.value) || 0;
+        if (stocksEl.value !== '' || closingEl.value !== '') {
+          endEl.value = stocks + closing;
+        }
+      }
+
+      if (startEl && endEl && usageEl) {
+        if (startEl.value !== '' && endEl.value !== '') {
+          const starting = parseArithmeticExpression(startEl.value);
+          const end = parseFloat(endEl.value) || 0;
+          const usage = starting - end;
+          usageEl.value = usage >= 0 ? usage : 0;
+        }
+      }
+    }
+
+    function loadLogForDate() {
+      const dateVal = document.getElementById('log-date').value;
+      const log = cachedDB[dateVal];
+
+      topItems.forEach(i => {
+        document.getElementById(`starting-${i}`).value = '';
+        document.getElementById(`end-${i}`).value = '';
+        document.getElementById(`usage-${i}`).value = '';
+      });
+
+      bottomItems.forEach(i => {
+        document.getElementById(`opening-${i}`).value = '';
+        document.getElementById(`stocks-${i}`).value = '';
+        document.getElementById(`closing-${i}`).value = '';
+        delete baseStocksMap[i];
+      });
+
+      document.getElementById('total-sales-input').value = '';
+
+      if (log) {
+        if (log.top) {
+          Object.keys(log.top).forEach(i => {
+            if (document.getElementById(`starting-${i}`)) {
+              document.getElementById(`starting-${i}`).value = log.top[i].starting ?? '';
+              document.getElementById(`end-${i}`).value = log.top[i].end ?? '';
+              document.getElementById(`usage-${i}`).value = log.top[i].usage ?? '';
+            }
+          });
+        }
+        if (log.bottom) {
+          Object.keys(log.bottom).forEach(i => {
+            if (document.getElementById(`opening-${i}`)) {
+              document.getElementById(`opening-${i}`).value = log.bottom[i].opening ?? '';
+              document.getElementById(`stocks-${i}`).value = log.bottom[i].stocks ?? '';
+              document.getElementById(`closing-${i}`).value = log.bottom[i].closing ?? '';
+              baseStocksMap[i] = parseFloat(log.bottom[i].stocks) || 0;
+            }
+          });
+        }
+        if (log.sales !== undefined) {
+          document.getElementById('total-sales-input').value = log.sales;
+        }
+      }
+      document.getElementById('log-status').textContent = `Viewing logs for ${dateVal}`;
+    }
+
+    async function saveLogbookData() {
+      const dateVal = document.getElementById('log-date').value;
+      if (!dateVal) {
+        alert("Please select a date first.");
+        return;
+      }
+
+      const topData = {};
+      const bottomData = {};
+
+      topItems.forEach(i => {
+        topData[i] = {
+          starting: parseArithmeticExpression(document.getElementById(`starting-${i}`).value),
+          end: parseFloat(document.getElementById(`end-${i}`).value) || 0,
+          usage: parseFloat(document.getElementById(`usage-${i}`).value) || 0
+        };
+      });
+
+      bottomItems.forEach(i => {
+        bottomData[i] = {
+          opening: document.getElementById(`opening-${i}`).value || '',
+          stocks: parseFloat(document.getElementById(`stocks-${i}`).value) || 0,
+          closing: parseFloat(document.getElementById(`closing-${i}`).value) || 0
+        };
+      });
+
+      const salesVal = parseFloat(document.getElementById('total-sales-input').value) || 0;
+      const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
+
+      try {
+        await fetch(`${API_BASE_URL}/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        alert(`Entry for ${dateVal} saved!`);
+        await fetchBackendLogs();
+        updateDashboard();
+        renderForecastPage();
+      } catch (err) {
+        alert('Failed to save log entry to backend.');
+      }
+    }
+
+    function saveApiUrl() {
+      const url = document.getElementById('script-url-input').value.trim();
+      GOOGLE_SCRIPT_URL = url;
+      localStorage.setItem('mad_potato_api_url', url);
+      alert('Google Sheet Web App URL saved!');
+    }
+
+    async function updateDashboard() {
+      const forecastData = await fetchProphetForecast('tomorrow');
+      const chartContainer = document.getElementById('dashboard-chart');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      const history = Object.keys(cachedDB)
+        .sort()
+        .slice(-5)
+        .map(d => ({ label: d.slice(5), sales: cachedDB[d].sales || 0, isForecast: false }));
+
+      if (forecastData.length > 0) {
+        const tomPred = forecastData[0];
+        history.push({ label: 'Tomorrow*', sales: tomPred.yhat, isForecast: true, performance: tomPred.performance });
+        const summaryEl = document.getElementById('dashboard-summary-text');
+        if (summaryEl) {
+          summaryEl.innerHTML = `Meta Prophet projects <strong>₱${tomPred.yhat.toLocaleString()}</strong> for tomorrow.<br>📌 <strong>Performance Level:</strong> ${tomPred.performance}`;
+        }
+      }
+
+      const maxSales = Math.max(...history.map(h => h.sales), 5500);
+
+      history.forEach(h => {
+        const heightPercent = Math.min(Math.round((h.sales / maxSales) * 100), 100);
+        const barColorClass = getBarClass(h.sales);
+        const barWrap = document.createElement('div');
+        barWrap.className = 'chart-bar-wrap';
+        barWrap.innerHTML = `
+          <div class="chart-bar ${barColorClass}" style="height: ${heightPercent}%;">
+            <span class="chart-bar-value">₱${h.sales.toLocaleString()}</span>
+          </div>
+          <span class="chart-label">${h.label}</span>
+        `;
+        chartContainer.appendChild(barWrap);
+      });
+    }
+
+    async function renderForecastPage() {
+      const period = document.getElementById('forecast-period')?.value || 'next_week';
+      const forecast = await fetchProphetForecast(period);
+      const chartContainer = document.getElementById('forecast-page-chart');
+      const analysisText = document.getElementById('forecast-analysis-text');
+      if (!chartContainer) return;
+      chartContainer.innerHTML = '';
+
+      if (forecast.length === 0) {
+        if (analysisText) analysisText.textContent = 'Insufficient log data to generate Meta Prophet model forecasts.';
+        return;
+      }
+
+      const totalProphetSales = forecast.reduce((a, b) => a + b.yhat, 0);
+      const avgDailySales = Math.round(totalProphetSales / forecast.length);
+
+      let overallStatus = 'Acceptable Performance ✅';
+      if (avgDailySales < 2000) overallStatus = 'Deficit Warning 🚨';
+      else if (avgDailySales < 3000) overallStatus = 'Underperforming ⚠️';
+      else if (avgDailySales >= 5000) overallStatus = 'High-Performing 🚀';
+
+      if (analysisText) {
+        analysisText.innerHTML = `Total projected revenue: <strong>₱${totalProphetSales.toLocaleString()}</strong> (Daily Average: <strong>₱${avgDailySales.toLocaleString()}</strong>).<br>📌 <strong>Overall Trend:</strong> ${overallStatus}`;
+      }
+
+      const maxVal = Math.max(...forecast.map(f => f.yhat), 5500);
+
+      forecast.forEach(f => {
+        const heightPercent = Math.min(Math.round((f.yhat / maxVal) * 100), 100);
+        const barColorClass = getBarClass(f.yhat);
+        const barWrap = document.createElement('div');
+        barWrap.className = 'chart-bar-wrap';
+        barWrap.innerHTML = `
+          <div class="chart-bar ${barColorClass}" style="height: ${heightPercent}%;">
+            <span class="chart-bar-value">₱${f.yhat.toLocaleString()}</span>
+          </div>
+          <span class="chart-label">${f.date.slice(5)}</span>
+        `;
+        chartContainer.appendChild(barWrap);
+      });
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+
+      const chatContainer = document.getElementById('chat-messages');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user-msg';
+      userMsg.textContent = text;
+      chatContainer.appendChild(userMsg);
+      input.value = '';
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: text })
+        });
+        const data = await res.json();
+
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot-msg';
+        botMsg.innerHTML = data.reply;
+        chatContainer.appendChild(botMsg);
+      } catch (err) {
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot-msg';
+        botMsg.textContent = 'Error connecting to Meta Prophet service on app.py.';
+        chatContainer.appendChild(botMsg);
+      }
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+      const selectedPage = document.getElementById('page-' + tabId);
+      if (selectedPage) selectedPage.classList.add('active');
+
+      const selectedNav = document.getElementById('nav-' + tabId);
+      if (selectedNav) selectedNav.classList.add('active');
+
+      const headerTitle = document.getElementById('page-header-title');
+      const titles = {
+        'dashboard': 'Mad Potato Management System: AI Sales Forecasting & Inventory Dashboard',
+        'forecast': 'AI Sales Forecasting & Demand Analytics',
+        'logbook': 'Digitized Handwritten Inventory & Sales Logbook',
+        'settings': 'System Settings & Configuration'
+      };
+      if (headerTitle && titles[tabId]) headerTitle.textContent = titles[tabId];
+
+      if (tabId === 'dashboard') updateDashboard();
+      if (tabId === 'forecast') renderForecastPage();
+    }
+
+    window.onload = function() {
+      buildLogbookUI();
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      document.getElementById('log-date').value = todayStr;
+      document.getElementById('script-url-input').value = GOOGLE_SCRIPT_URL;
+
+      fetchBackendLogs().then(() => {
+        loadLogForDate();
+        updateDashboard();
+        renderForecastPage();
+      });
+    };
+  </script>
+
+</body>
+</html>
