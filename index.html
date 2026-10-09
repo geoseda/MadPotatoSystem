@@ -547,7 +547,7 @@
 
         <section class="card">
           <div class="card-title">
-            <span>Sales Forecast Assistant</span>
+            <span>MAPO ASSISTANT</span>
           </div>
           <div class="chat-container">
             <div class="chat-messages" id="chat-messages">
@@ -886,49 +886,61 @@
       document.getElementById('log-status').textContent = `Viewing logs for ${dateVal}`;
     }
 
-    async function saveLogbookData() {
-      const dateVal = document.getElementById('log-date').value;
-      if (!dateVal) {
-        alert("Please select a date first.");
-        return;
-      }
+async function saveLogbookData() {
+  const dateVal = document.getElementById('log-date').value;
+  if (!dateVal) {
+    alert("Please select a date first.");
+    return;
+  }
 
-      const topData = {};
-      const bottomData = {};
+  const topData = {};
+  const bottomData = {};
 
-      topItems.forEach(i => {
-        topData[i] = {
-          starting: parseArithmeticExpression(document.getElementById(`starting-${i}`).value),
-          end: parseFloat(document.getElementById(`end-${i}`).value) || 0,
-          usage: parseFloat(document.getElementById(`usage-${i}`).value) || 0
-        };
-      });
+  topItems.forEach(i => {
+    topData[i] = {
+      starting: parseArithmeticExpression(document.getElementById(`starting-${i}`).value),
+      end: parseFloat(document.getElementById(`end-${i}`).value) || 0,
+      usage: parseFloat(document.getElementById(`usage-${i}`).value) || 0
+    };
+  });
 
-      bottomItems.forEach(i => {
-        bottomData[i] = {
-          opening: document.getElementById(`opening-${i}`).value || '',
-          stocks: parseFloat(document.getElementById(`stocks-${i}`).value) || 0,
-          closing: parseFloat(document.getElementById(`closing-${i}`).value) || 0
-        };
-      });
+  bottomItems.forEach(i => {
+    bottomData[i] = {
+      opening: document.getElementById(`opening-${i}`).value || '',
+      stocks: parseFloat(document.getElementById(`stocks-${i}`).value) || 0,
+      closing: parseFloat(document.getElementById(`closing-${i}`).value) || 0
+    };
+  });
 
-      const salesVal = parseFloat(document.getElementById('total-sales-input').value) || 0;
-      const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
+  const salesVal = parseFloat(document.getElementById('total-sales-input').value) || 0;
+  const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
 
-      try {
-        await fetch(`${API_BASE_URL}/logs`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        alert(`Entry for ${dateVal} saved!`);
-        await fetchBackendLogs();
-        updateDashboard();
-        renderForecastPage();
-      } catch (err) {
-        alert('Failed to save log entry to backend.');
-      }
+  try {
+    // 1. Save to Flask Backend (Local Python & Meta Prophet)
+    await fetch(`${API_BASE_URL}/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // 2. Synchronize Automatically with Google Sheets Web App
+    if (GOOGLE_SCRIPT_URL) {
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Bypasses CORS browser restrictions for Google Apps Script
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(err => console.warn("Google Sheets Sync Warning:", err));
     }
+
+    alert(`Entry for ${dateVal} saved and synced to Google Sheets!`);
+    await fetchBackendLogs();
+    updateDashboard();
+    renderForecastPage();
+  } catch (err) {
+    alert('Failed to save log entry.');
+  }
+}
 
     function saveApiUrl() {
       const url = document.getElementById('script-url-input').value.trim();
