@@ -671,9 +671,9 @@
   </main>
 
   <script>
-    const API_BASE_URL = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")
-      ? "http://127.0.0.1:5000/api"
-      : `${window.location.origin}/api`;
+    const API_BASE_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:")
+      ? "http://127.0.0.1:5000/api"  // Local Flask Backend
+      : `${window.location.origin}/api`;  // Deployed Flask Backend
     let GOOGLE_SCRIPT_URL = localStorage.getItem('mad_potato_api_url') || '';
 
     const topItems    = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC', 'F', 'CP', 'JJ', 'BW'];
