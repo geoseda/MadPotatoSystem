@@ -602,7 +602,10 @@
         <section class="card">
           <div class="card-title">
             <span>Digitized Handwritten Logbook Page</span>
-            <button class="btn-action" onclick="saveLogbookData()">💾 Save Logbook Entry</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-action" style="background-color: #0284c7;" onclick="loadLogForDate()">🔄 Sync / Load Logs</button>
+              <button class="btn-action" onclick="saveLogbookData()">💾 Save Logbook Entry</button>
+            </div>
           </div>
 
           <div class="logbook-toolbar">
@@ -672,8 +675,8 @@
 
   <script>
     const API_BASE_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:")
-      ? "http://127.0.0.1:5000/api"  // Local Flask Backend
-      : `${window.location.origin}/api`;  // Deployed Flask Backend
+      ? "http://127.0.0.1:5000/api"
+      : `${window.location.origin}/api`;
     let GOOGLE_SCRIPT_URL = localStorage.getItem('mad_potato_api_url') || '';
 
     const topItems    = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC', 'F', 'CP', 'JJ', 'BW'];
@@ -842,10 +845,7 @@
       }
     }
 
-    function loadLogForDate() {
-      const dateVal = document.getElementById('log-date').value;
-      const log = cachedDB[dateVal];
-
+    function populateLogUI(log) {
       topItems.forEach(i => {
         document.getElementById(`starting-${i}`).value = '';
         document.getElementById(`end-${i}`).value = '';
@@ -885,7 +885,36 @@
           document.getElementById('total-sales-input').value = log.sales;
         }
       }
-      document.getElementById('log-status').textContent = `Viewing logs for ${dateVal}`;
+    }
+
+    async function loadLogForDate() {
+      const dateVal = document.getElementById('log-date').value;
+      const statusEl = document.getElementById('log-status');
+      statusEl.textContent = `Syncing logs for ${dateVal}...`;
+
+      // 1. Try loading locally from memory
+      if (cachedDB[dateVal]) {
+        populateLogUI(cachedDB[dateVal]);
+        statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache)`;
+      }
+
+      // 2. Fetch directly from Google Sheets cloud storage
+      if (GOOGLE_SCRIPT_URL) {
+        try {
+          const res = await fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}`);
+          const json = await res.json();
+          if (json.status === "success" && json.data) {
+            populateLogUI(json.data);
+            cachedDB[dateVal] = json.data; // Save to local cache
+            statusEl.textContent = `Loaded logs for ${dateVal} (Synced from Google Sheets ✅)`;
+          } else if (!cachedDB[dateVal]) {
+            populateLogUI(null);
+            statusEl.textContent = `No saved logs for ${dateVal}`;
+          }
+        } catch (err) {
+          console.warn("Could not sync directly from Google Sheets:", err);
+        }
+      }
     }
 
     async function saveLogbookData() {
@@ -918,18 +947,16 @@
       const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
 
       try {
-        // 1. Save to Flask Backend (Local Python & Meta Prophet)
         await fetch(`${API_BASE_URL}/logs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        // 2. Synchronize Automatically with Google Sheets Web App
         if (GOOGLE_SCRIPT_URL) {
           fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // Bypasses CORS browser restrictions for Google Apps Script
+            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           }).catch(err => console.warn("Google Sheets Sync Warning:", err));
