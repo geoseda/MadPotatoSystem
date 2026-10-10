@@ -776,7 +776,6 @@
     // LOGBOOK CALCULATION ENGINE
     // ==========================================
 
-    // Helper function to safely read numbers
     function getVal(id) {
       const el = document.getElementById(id);
       if (!el || el.value === '') return null;
@@ -790,7 +789,6 @@
       }
     }
 
-    // 1. Starting Input Changed: Stocks = Starting - Opening
     function onStartingInput(item) {
       const start = getVal(`starting-${item}`);
       const opening = getVal(`opening-${item}`);
@@ -801,7 +799,6 @@
       recalculateItem(item);
     }
 
-    // 2. Opening Input Changed: Stocks = Starting - Opening (e.g. Start 200, Opening 20 -> Stocks 180)
     function onOpeningInput(item) {
       const start = getVal(`starting-${item}`);
       const opening = getVal(`opening-${item}`);
@@ -815,7 +812,6 @@
       recalculateItem(item);
     }
 
-    // 3. Stocks Input Changed: Starting = Opening + Stocks
     function onStocksInput(item) {
       const opening = getVal(`opening-${item}`);
       const stocks = getVal(`stocks-${item}`);
@@ -826,7 +822,6 @@
       recalculateItem(item);
     }
 
-    // 4. Usage Input Changed: Closing = Opening - Usage, End = Starting - Usage
     function onUsageInput(item) {
       const usage = getVal(`usage-${item}`);
       const opening = getVal(`opening-${item}`);
@@ -840,7 +835,6 @@
       }
     }
 
-    // 5. Closing Input Changed: Usage = Opening - Closing, End = Starting - Usage
     function onClosingInput(item) {
       const closing = getVal(`closing-${item}`);
       const opening = getVal(`opening-${item}`);
@@ -856,7 +850,6 @@
       }
     }
 
-    // 6. End Input Changed: Usage = Starting - End, Closing = Opening - Usage
     function onEndInput(item) {
       const end = getVal(`end-${item}`);
       const start = getVal(`starting-${item}`);
@@ -872,7 +865,6 @@
       }
     }
 
-    // Recalculate dependent rows
     function recalculateItem(item) {
       const usage = getVal(`usage-${item}`);
       const closing = getVal(`closing-${item}`);
@@ -934,14 +926,20 @@
 
     async function loadLogForDate() {
       const dateVal = document.getElementById('log-date').value;
+      if (!dateVal) return;
+
       const statusEl = document.getElementById('log-status');
       statusEl.textContent = `Syncing logs for ${dateVal}...`;
 
+      // 1. Check local memory first
       if (cachedDB[dateVal]) {
         populateLogUI(cachedDB[dateVal]);
-        statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache)`;
+        statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache ✅)`;
+      } else {
+        populateLogUI(null);
       }
 
+      // 2. Fetch directly from Google Sheets cloud storage
       if (GOOGLE_SCRIPT_URL) {
         try {
           const res = await fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}`);
