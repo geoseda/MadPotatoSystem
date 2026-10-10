@@ -682,7 +682,6 @@
     const topItems    = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC', 'F', 'CP', 'JJ', 'BW'];
     const bottomItems = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC'];
 
-    const baseStocksMap = {};
     let cachedDB = {};
 
     function getBarClass(amount) {
@@ -752,9 +751,9 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="item-label">${item}</td>
-          <td><input type="text" class="grid-input" id="starting-${item}" oninput="onStartingChange('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="end-${item}" oninput="calculateRow('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="usage-${item}"></td>
+          <td><input type="text" class="grid-input" id="starting-${item}" oninput="onStartingInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="end-${item}" oninput="onEndInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="usage-${item}" oninput="onUsageInput('${item}')"></td>
         `;
         topTbody.appendChild(tr);
       });
@@ -765,85 +764,133 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="item-label">${item}</td>
-          <td><input type="text" class="grid-input" id="opening-${item}" oninput="onOpeningChange('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="stocks-${item}" oninput="onStocksChange('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="closing-${item}" oninput="calculateRow('${item}')"></td>
+          <td><input type="text" class="grid-input" id="opening-${item}" oninput="onOpeningInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="stocks-${item}" oninput="onStocksInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="closing-${item}" oninput="onClosingInput('${item}')"></td>
         `;
         bottomTbody.appendChild(tr);
       });
     }
 
-    function onStartingChange(item) {
-      const startEl   = document.getElementById(`starting-${item}`);
-      const openingEl = document.getElementById(`opening-${item}`);
-      const stocksEl  = document.getElementById(`stocks-${item}`);
+    // ==========================================
+    // LOGBOOK CALCULATION ENGINE
+    // ==========================================
 
-      const currentStart = parseArithmeticExpression(startEl ? startEl.value : 0);
-      const currentOpening = parseArithmeticExpression(openingEl ? openingEl.value : 0);
-
-      if (stocksEl) {
-        const calculatedStock = Math.max(0, currentStart - currentOpening);
-        baseStocksMap[item] = calculatedStock;
-        
-        if (openingEl && (openingEl.value.includes('+') || openingEl.value.includes('-'))) {
-          onOpeningChange(item);
-        } else {
-          stocksEl.value = calculatedStock;
-        }
-      }
-      calculateRow(item);
+    // Helper function to safely read numbers
+    function getVal(id) {
+      const el = document.getElementById(id);
+      if (!el || el.value === '') return null;
+      return parseArithmeticExpression(el.value);
     }
 
-    function onStocksChange(item) {
-      const stocksEl = document.getElementById(`stocks-${item}`);
-      if (stocksEl) baseStocksMap[item] = parseFloat(stocksEl.value) || 0;
-      calculateRow(item);
-    }
-
-    function onOpeningChange(item) {
-      const openingEl = document.getElementById(`opening-${item}`);
-      const stocksEl  = document.getElementById(`stocks-${item}`);
-      const startEl   = document.getElementById(`starting-${item}`);
-      if (!openingEl || !stocksEl) return;
-
-      const rawVal = openingEl.value.trim();
-      const currentStart = parseArithmeticExpression(startEl ? startEl.value : 0);
-      
-      const baseOpeningVal = parseArithmeticExpression(rawVal.split(/[+-]/)[0]);
-      baseStocksMap[item] = Math.max(0, currentStart - baseOpeningVal);
-
-      const totalOpening = parseArithmeticExpression(rawVal);
-      const adjustment = totalOpening - baseOpeningVal;
-
-      const newStock = baseStocksMap[item] - adjustment;
-      stocksEl.value = newStock >= 0 ? newStock : 0;
-      calculateRow(item);
-    }
-
-    function calculateRow(item) {
-      const stocksEl  = document.getElementById(`stocks-${item}`);
-      const closingEl = document.getElementById(`closing-${item}`);
-      const endEl     = document.getElementById(`end-${item}`);
-      const startEl   = document.getElementById(`starting-${item}`);
-      const usageEl   = document.getElementById(`usage-${item}`);
-
-      if (stocksEl && closingEl && endEl) {
-        const stocks = parseFloat(stocksEl.value) || 0;
-        const closing = parseFloat(closingEl.value) || 0;
-        if (stocksEl.value !== '' || closingEl.value !== '') {
-          endEl.value = stocks + closing;
-        }
-      }
-
-      if (startEl && endEl && usageEl) {
-        if (startEl.value !== '' && endEl.value !== '') {
-          const starting = parseArithmeticExpression(startEl.value);
-          const end = parseFloat(endEl.value) || 0;
-          const usage = starting - end;
-          usageEl.value = usage >= 0 ? usage : 0;
-        }
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = (val !== null && !isNaN(val)) ? Math.round(val * 100) / 100 : '';
       }
     }
+
+    // 1. Starting Input Changed: Stocks = Starting - Opening
+    function onStartingInput(item) {
+      const start = getVal(`starting-${item}`);
+      const opening = getVal(`opening-${item}`);
+
+      if (start !== null && opening !== null) {
+        setVal(`stocks-${item}`, start - opening);
+      }
+      recalculateItem(item);
+    }
+
+    // 2. Opening Input Changed: Stocks = Starting - Opening (e.g. Start 200, Opening 20 -> Stocks 180)
+    function onOpeningInput(item) {
+      const start = getVal(`starting-${item}`);
+      const opening = getVal(`opening-${item}`);
+      const stocks = getVal(`stocks-${item}`);
+
+      if (start !== null && opening !== null) {
+        setVal(`stocks-${item}`, start - opening);
+      } else if (stocks !== null && opening !== null) {
+        setVal(`starting-${item}`, opening + stocks);
+      }
+      recalculateItem(item);
+    }
+
+    // 3. Stocks Input Changed: Starting = Opening + Stocks
+    function onStocksInput(item) {
+      const opening = getVal(`opening-${item}`);
+      const stocks = getVal(`stocks-${item}`);
+
+      if (opening !== null && stocks !== null) {
+        setVal(`starting-${item}`, opening + stocks);
+      }
+      recalculateItem(item);
+    }
+
+    // 4. Usage Input Changed: Closing = Opening - Usage, End = Starting - Usage
+    function onUsageInput(item) {
+      const usage = getVal(`usage-${item}`);
+      const opening = getVal(`opening-${item}`);
+      const start = getVal(`starting-${item}`);
+
+      if (usage !== null && opening !== null) {
+        setVal(`closing-${item}`, opening - usage);
+      }
+      if (usage !== null && start !== null) {
+        setVal(`end-${item}`, start - usage);
+      }
+    }
+
+    // 5. Closing Input Changed: Usage = Opening - Closing, End = Starting - Usage
+    function onClosingInput(item) {
+      const closing = getVal(`closing-${item}`);
+      const opening = getVal(`opening-${item}`);
+      const start = getVal(`starting-${item}`);
+
+      if (closing !== null && opening !== null) {
+        const calculatedUsage = opening - closing;
+        setVal(`usage-${item}`, calculatedUsage);
+
+        if (start !== null) {
+          setVal(`end-${item}`, start - calculatedUsage);
+        }
+      }
+    }
+
+    // 6. End Input Changed: Usage = Starting - End, Closing = Opening - Usage
+    function onEndInput(item) {
+      const end = getVal(`end-${item}`);
+      const start = getVal(`starting-${item}`);
+      const opening = getVal(`opening-${item}`);
+
+      if (end !== null && start !== null) {
+        const calculatedUsage = start - end;
+        setVal(`usage-${item}`, calculatedUsage);
+
+        if (opening !== null) {
+          setVal(`closing-${item}`, opening - calculatedUsage);
+        }
+      }
+    }
+
+    // Recalculate dependent rows
+    function recalculateItem(item) {
+      const usage = getVal(`usage-${item}`);
+      const closing = getVal(`closing-${item}`);
+      const opening = getVal(`opening-${item}`);
+      const start = getVal(`starting-${item}`);
+
+      if (usage !== null) {
+        onUsageInput(item);
+      } else if (closing !== null) {
+        onClosingInput(item);
+      } else if (start !== null && opening !== null) {
+        setVal(`starting-${item}`, (getVal(`opening-${item}`) || 0) + (getVal(`stocks-${item}`) || 0));
+      }
+    }
+
+    // ==========================================
+    // UI POPULATION & CLOUD SYNC
+    // ==========================================
 
     function populateLogUI(log) {
       topItems.forEach(i => {
@@ -856,7 +903,6 @@
         document.getElementById(`opening-${i}`).value = '';
         document.getElementById(`stocks-${i}`).value = '';
         document.getElementById(`closing-${i}`).value = '';
-        delete baseStocksMap[i];
       });
 
       document.getElementById('total-sales-input').value = '';
@@ -877,7 +923,6 @@
               document.getElementById(`opening-${i}`).value = log.bottom[i].opening ?? '';
               document.getElementById(`stocks-${i}`).value = log.bottom[i].stocks ?? '';
               document.getElementById(`closing-${i}`).value = log.bottom[i].closing ?? '';
-              baseStocksMap[i] = parseFloat(log.bottom[i].stocks) || 0;
             }
           });
         }
@@ -892,20 +937,18 @@
       const statusEl = document.getElementById('log-status');
       statusEl.textContent = `Syncing logs for ${dateVal}...`;
 
-      // 1. Try loading locally from memory
       if (cachedDB[dateVal]) {
         populateLogUI(cachedDB[dateVal]);
         statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache)`;
       }
 
-      // 2. Fetch directly from Google Sheets cloud storage
       if (GOOGLE_SCRIPT_URL) {
         try {
           const res = await fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}`);
           const json = await res.json();
           if (json.status === "success" && json.data) {
             populateLogUI(json.data);
-            cachedDB[dateVal] = json.data; // Save to local cache
+            cachedDB[dateVal] = json.data;
             statusEl.textContent = `Loaded logs for ${dateVal} (Synced from Google Sheets ✅)`;
           } else if (!cachedDB[dateVal]) {
             populateLogUI(null);
