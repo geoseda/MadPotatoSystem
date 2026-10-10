@@ -551,10 +551,10 @@
           </div>
           <div class="chat-container">
             <div class="chat-messages" id="chat-messages">
-              <div class="message bot-msg">Hello! Ask me about <strong>tomorrow's prediction</strong>, <strong>next week</strong>, or business <strong>benchmarks</strong>!</div>
+              <div class="message bot-msg">Hello! Ask me about <strong>today's prediction</strong>, <strong>next week</strong>, or business <strong>benchmarks</strong>!</div>
             </div>
             <div class="chat-input-area">
-              <input type="text" id="chat-input" class="chat-input" placeholder="Ask e.g. 'What is tomorrow's forecast?'..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+              <input type="text" id="chat-input" class="chat-input" placeholder="Ask e.g. 'What is today's forecast?'..." onkeydown="if(event.key==='Enter') sendChatMessage()">
               <button class="send-btn" onclick="sendChatMessage()">Send</button>
             </div>
           </div>
@@ -571,7 +571,7 @@
             <div style="display: flex; gap: 8px; align-items: center;">
               <label for="forecast-period" style="font-size: 12px; font-weight: bold;">Forecast View:</label>
               <select id="forecast-period" class="select-control" onchange="renderForecastPage()">
-                <option value="tomorrow">Tomorrow's Forecast</option>
+                <option value="tomorrow">Today's Forecast</option>
                 <option value="next_week" selected>Next Week (7-Day Projection)</option>
                 <option value="next_month">Next Month (4-Week Projection)</option>
               </select>
@@ -888,61 +888,61 @@
       document.getElementById('log-status').textContent = `Viewing logs for ${dateVal}`;
     }
 
-async function saveLogbookData() {
-  const dateVal = document.getElementById('log-date').value;
-  if (!dateVal) {
-    alert("Please select a date first.");
-    return;
-  }
+    async function saveLogbookData() {
+      const dateVal = document.getElementById('log-date').value;
+      if (!dateVal) {
+        alert("Please select a date first.");
+        return;
+      }
 
-  const topData = {};
-  const bottomData = {};
+      const topData = {};
+      const bottomData = {};
 
-  topItems.forEach(i => {
-    topData[i] = {
-      starting: parseArithmeticExpression(document.getElementById(`starting-${i}`).value),
-      end: parseFloat(document.getElementById(`end-${i}`).value) || 0,
-      usage: parseFloat(document.getElementById(`usage-${i}`).value) || 0
-    };
-  });
+      topItems.forEach(i => {
+        topData[i] = {
+          starting: parseArithmeticExpression(document.getElementById(`starting-${i}`).value),
+          end: parseFloat(document.getElementById(`end-${i}`).value) || 0,
+          usage: parseFloat(document.getElementById(`usage-${i}`).value) || 0
+        };
+      });
 
-  bottomItems.forEach(i => {
-    bottomData[i] = {
-      opening: document.getElementById(`opening-${i}`).value || '',
-      stocks: parseFloat(document.getElementById(`stocks-${i}`).value) || 0,
-      closing: parseFloat(document.getElementById(`closing-${i}`).value) || 0
-    };
-  });
+      bottomItems.forEach(i => {
+        bottomData[i] = {
+          opening: document.getElementById(`opening-${i}`).value || '',
+          stocks: parseFloat(document.getElementById(`stocks-${i}`).value) || 0,
+          closing: parseFloat(document.getElementById(`closing-${i}`).value) || 0
+        };
+      });
 
-  const salesVal = parseFloat(document.getElementById('total-sales-input').value) || 0;
-  const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
+      const salesVal = parseFloat(document.getElementById('total-sales-input').value) || 0;
+      const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
 
-  try {
-    // 1. Save to Flask Backend (Local Python & Meta Prophet)
-    await fetch(`${API_BASE_URL}/logs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+      try {
+        // 1. Save to Flask Backend (Local Python & Meta Prophet)
+        await fetch(`${API_BASE_URL}/logs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-    // 2. Synchronize Automatically with Google Sheets Web App
-    if (GOOGLE_SCRIPT_URL) {
-      fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', // Bypasses CORS browser restrictions for Google Apps Script
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(err => console.warn("Google Sheets Sync Warning:", err));
+        // 2. Synchronize Automatically with Google Sheets Web App
+        if (GOOGLE_SCRIPT_URL) {
+          fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Bypasses CORS browser restrictions for Google Apps Script
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(err => console.warn("Google Sheets Sync Warning:", err));
+        }
+
+        alert(`Entry for ${dateVal} saved and synced to Google Sheets!`);
+        await fetchBackendLogs();
+        updateDashboard();
+        renderForecastPage();
+      } catch (err) {
+        alert('Failed to save log entry.');
+      }
     }
-
-    alert(`Entry for ${dateVal} saved and synced to Google Sheets!`);
-    await fetchBackendLogs();
-    updateDashboard();
-    renderForecastPage();
-  } catch (err) {
-    alert('Failed to save log entry.');
-  }
-}
 
     function saveApiUrl() {
       const url = document.getElementById('script-url-input').value.trim();
@@ -964,10 +964,10 @@ async function saveLogbookData() {
 
       if (forecastData.length > 0) {
         const tomPred = forecastData[0];
-        history.push({ label: 'Tomorrow*', sales: tomPred.yhat, isForecast: true, performance: tomPred.performance });
+        history.push({ label: 'Today*', sales: tomPred.yhat, isForecast: true, performance: tomPred.performance });
         const summaryEl = document.getElementById('dashboard-summary-text');
         if (summaryEl) {
-          summaryEl.innerHTML = `Meta Prophet projects <strong>₱${tomPred.yhat.toLocaleString()}</strong> for tomorrow.<br>📌 <strong>Performance Level:</strong> ${tomPred.performance}`;
+          summaryEl.innerHTML = `Meta Prophet projects <strong>₱${tomPred.yhat.toLocaleString()}</strong> for today.<br>📌 <strong>Performance Level:</strong> ${tomPred.performance}`;
         }
       }
 

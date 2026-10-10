@@ -21,12 +21,13 @@ def train_and_save_prophet():
     
     print(f"📊 Dataset Loaded: {len(df)} historical entries from {df['ds'].min().strftime('%Y-%m-%d')} to {df['ds'].max().strftime('%Y-%m-%d')}")
 
-    # 2. Configure & Fit Meta Prophet Model
+    # 2. Configure & Fit Meta Prophet Model (Tuned for ~40-day dataset)
     model = Prophet(
         yearly_seasonality=False,
         weekly_seasonality=True,
         daily_seasonality=False,
-        seasonality_mode='multiplicative'
+        seasonality_mode='additive',      # Switched from 'multiplicative' for more stable predictions
+        changepoint_prior_scale=0.08      # Allows the model to adapt faster to recent trends
     )
     model.fit(df)
 
@@ -54,4 +55,3 @@ def train_and_save_prophet():
 
 if __name__ == '__main__':
     train_and_save_prophet()
-    

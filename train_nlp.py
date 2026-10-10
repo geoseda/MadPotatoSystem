@@ -11,7 +11,7 @@ TRAINING_DATA = [
     # 1. Intent: 'inventory_stocks' (Querying stock levels, remaining items, closing stock)
     ("What are the remaining stocks for today?", "inventory_stocks"),
     ("How much stock do we have left?", "inventory_stocks"),
-    ("What is the inventory level on 2026-10-04?", "inventory_stocks"),
+    ("What is the inventory level on 2026-10-10?", "inventory_stocks"),
     ("Check remaining stocks", "inventory_stocks"),
     ("What is the closing stock for Medio and Grande?", "inventory_stocks"),
     ("How many chicken poppers do we have left?", "inventory_stocks"),
@@ -22,31 +22,38 @@ TRAINING_DATA = [
 
     # 2. Intent: 'date_sales' (Querying historical sales revenue on a specific date)
     ("What is the sales for this day?", "date_sales"),
-    ("How much did we earn on 2026-10-02?", "date_sales"),
-    ("What was the revenue on 2026-10-01?", "date_sales"),
+    ("How much did we earn on 2026-10-09?", "date_sales"),
+    ("What was the revenue on 2026-10-08?", "date_sales"),
     ("Show me total sales on this date", "date_sales"),
-    ("How much revenue did we make last Friday?", "date_sales"),
-    ("Sales for today", "date_sales"),
+    ("How much revenue did we make yesterday?", "date_sales"),
+    ("Sales for yesterday", "date_sales"),
 
-    # 3. Intent: 'tomorrow' (Forecast)
+    # 3. Intent: 'today' (Forecast for October 10)
+    ("What is today's sales forecast?", "today"),
+    ("Predict sales for today", "today"),
+    ("How much revenue will we make today?", "today"),
+    ("Today forecast", "today"),
+    ("Current day prediction", "today"),
+
+    # 4. Intent: 'tomorrow' (Forecast for October 11)
     ("What is tomorrow's sales forecast?", "tomorrow"),
     ("Predict sales for tomorrow", "tomorrow"),
     ("How much revenue will we make tomorrow?", "tomorrow"),
     ("Tomorrow forecast", "tomorrow"),
     ("Next day prediction", "tomorrow"),
 
-    # 4. Intent: 'week' (7-Day Forecast)
+    # 5. Intent: 'week' (7-Day Forecast)
     ("What is the 7 day forecast?", "week"),
     ("Show me next week's sales", "week"),
     ("Weekly sales summary", "week"),
     ("7-day projection", "week"),
 
-    # 5. Intent: 'month' (30-Day Forecast)
+    # 6. Intent: 'month' (30-Day Forecast)
     ("What is the 30 day forecast?", "month"),
     ("Monthly prediction", "month"),
     ("Show me next month's total sales", "month"),
 
-    # 6. Intent: 'targets' (Performance Tiers & Business Benchmarks)
+    # 7. Intent: 'targets' (Performance Tiers & Business Benchmarks)
     ("What are our operational targets?", "targets"),
     ("Show business benchmarks", "targets"),
     ("What is a high performing day?", "targets"),
