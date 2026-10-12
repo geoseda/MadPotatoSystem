@@ -43,8 +43,11 @@ def load_initial_csv_data():
     if os.path.exists(CSV_FILE):
         try:
             df = pd.read_csv(CSV_FILE)
+            # Standardize date format from DD/MM/YYYY to YYYY-MM-DD
+            df['ds'] = pd.to_datetime(df['ds'], dayfirst=True)
+            
             for _, row in df.iterrows():
-                date_str = str(row['ds']).strip()
+                date_str = row['ds'].strftime("%Y-%m-%d")
                 sales_val = float(row['y'])
                 logbook_db[date_str] = {"sales": sales_val, "top": {}, "bottom": {}}
             print(f"✅ Loaded {len(df)} historical entries from {CSV_FILE}")
