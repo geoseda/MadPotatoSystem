@@ -12,12 +12,12 @@ CORS(app)
 CSV_FILE = "sales_data.csv"
 NLP_MODEL_FILE = "nlp_pipeline.joblib"
 
-# ITEM CODE DICTIONARY (Mad Potato Operational Glossary)
 ITEM_NAMES = {
     "M": "Medio (M)",
     "G": "Grande (G)",
     "J": "Jumbo (J)",
     "MG": "Mega (MG)",
+    "ML": "Mega (ML)",
     "2XL": "2XL",
     "3XL": "3XL",
     "JC": "Juice Cups (JC)",
@@ -27,32 +27,121 @@ ITEM_NAMES = {
     "BW": "Bottled Water (BW)"
 }
 
+ITEM_ALIASES = {
+    "medio": "M",
+    "grande": "G",
+    "jumbo juice": "JJ",
+    "jumbo": "J",
+    "mega": "MG",
+    "2xl": "2XL",
+    "3xl": "3XL",
+    "juice cups": "JC",
+    "juice cup": "JC",
+    "fries": "F",
+    "fry": "F",
+    "chicken poppers": "CP",
+    "poppers": "CP",
+    "bottled water": "BW",
+    "water": "BW"
+}
+
+ALL_TOP_ITEMS = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC', 'F', 'CP', 'JJ', 'BW']
+
 logbook_db = {}
 nlp_model_pipeline = None
+
+def parse_val(val, default=0.0):
+    if pd.isnull(val):
+        return default
+    val_str = str(val).strip()
+    if not val_str:
+        return default
+    if '+' in val_str:
+        try:
+            return float(sum(float(x.strip()) for x in val_str.split('+') if x.strip()))
+        except Exception:
+            return default
+    try:
+        return float(val_str)
+    except Exception:
+        return default
+
+def detect_specific_items(query_lower):
+    matched_codes = []
+    sorted_keywords = sorted(ITEM_ALIASES.keys(), key=len, reverse=True)
+    temp_query = query_lower
+    for kw in sorted_keywords:
+        if kw in temp_query:
+            code = ITEM_ALIASES[kw]
+            if code not in matched_codes:
+                matched_codes.append(code)
+            temp_query = temp_query.replace(kw, "")
+    return matched_codes
 
 def load_nlp_model():
     global nlp_model_pipeline
     if os.path.exists(NLP_MODEL_FILE):
-        nlp_model_pipeline = joblib.load(NLP_MODEL_FILE)
-        print("✅ Loaded trained NLP model pipeline.")
+        try:
+            nlp_model_pipeline = joblib.load(NLP_MODEL_FILE)
+            print("Loaded trained NLP model pipeline.")
+        except Exception as e:
+            print(f"Error loading NLP model: {e}")
     else:
-        print("⚠️ NLP pipeline not found. Run train_nlp.py first.")
+        print("NLP pipeline not found. Run train_nlp.py first.")
 
 def load_initial_csv_data():
     global logbook_db
+    logbook_db = {}
     if os.path.exists(CSV_FILE):
         try:
             df = pd.read_csv(CSV_FILE)
-            # Standardize date format from DD/MM/YYYY to YYYY-MM-DD
-            df['ds'] = pd.to_datetime(df['ds'], dayfirst=True)
             
-            for _, row in df.iterrows():
-                date_str = row['ds'].strftime("%Y-%m-%d")
-                sales_val = float(row['y'])
-                logbook_db[date_str] = {"sales": sales_val, "top": {}, "bottom": {}}
-            print(f"✅ Loaded {len(df)} historical entries from {CSV_FILE}")
+            if 'Date' in df.columns or 'ds' in df.columns:
+                date_col = 'Date' if 'Date' in df.columns else 'ds'
+                df[date_col] = df[date_col].ffill()
+                df['parsed_ds'] = pd.to_datetime(df[date_col])
+                
+                grouped = df.groupby('parsed_ds')
+                for ds, group in grouped:
+                    date_str = ds.strftime("%Y-%m-%d")
+                    
+                    sales_val = 0.0
+                    if 'Daily_Total_Sales' in group.columns and pd.notnull(group['Daily_Total_Sales'].iloc[0]):
+                        sales_val = parse_val(group['Daily_Total_Sales'].iloc[0], 0.0)
+                    elif 'y' in group.columns and pd.notnull(group['y'].iloc[0]):
+                        sales_val = parse_val(group['y'].iloc[0], 0.0)
+                    
+                    top_data = {}
+                    bottom_data = {}
+                    
+                    for _, row in group.iterrows():
+                        item_code = str(row.get('Item_Code', '')).strip()
+                        if item_code == 'ML':
+                            item_code = 'MG'
+                        
+                        if item_code:
+                            top_data[item_code] = {
+                                "starting": parse_val(row.get('Starting_Stock'), 0.0),
+                                "end": parse_val(row.get('Ending_Stock'), 0.0),
+                                "usage": parse_val(row.get('Daily_Usage'), 0.0)
+                            }
+                            
+                            bottom_data[item_code] = {
+                                "opening": str(row.get('Opening', '')).strip() if pd.notnull(row.get('Opening')) else "",
+                                "stocks": parse_val(row.get('Stocks'), parse_val(row.get('Restock_Added'), 0.0)),
+                                "closing": parse_val(row.get('Closing'), parse_val(row.get('Closing_Stock'), 0.0))
+                            }
+                    
+                    logbook_db[date_str] = {
+                        "date": date_str,
+                        "sales": sales_val,
+                        "top": top_data,
+                        "bottom": bottom_data
+                    }
+                    
+            print(f"Loaded {len(logbook_db)} historical days from '{CSV_FILE}'")
         except Exception as e:
-            print(f"Error loading {CSV_FILE}: {e}")
+            print(f"Error loading dataset {CSV_FILE}: {e}")
 
 load_nlp_model()
 load_initial_csv_data()
@@ -87,13 +176,55 @@ def fit_prophet_model(periods=30):
         yearly_seasonality=False,
         weekly_seasonality=True,
         daily_seasonality=False,
-        seasonality_mode='multiplicative'
+        seasonality_mode='multiplicative',
+        changepoint_prior_scale=0.35,
+        seasonality_prior_scale=2.0
     )
     model.fit(df)
 
     future = model.make_future_dataframe(periods=periods, freq="D")
     forecast = model.predict(future)
     return forecast
+
+def save_logbook_to_csv():
+    rows = []
+    for date_str in sorted(logbook_db.keys()):
+        entry = logbook_db[date_str]
+        sales = entry.get("sales", 0)
+        top = entry.get("top", {})
+        bottom = entry.get("bottom", {})
+
+        first_row = True
+        for item in ALL_TOP_ITEMS:
+            t_item = top.get(item, {})
+            b_item = bottom.get(item, {})
+
+            starting = t_item.get("starting", 0.0)
+            ending = t_item.get("end", 0.0)
+            usage = t_item.get("usage", 0.0)
+
+            opening = b_item.get("opening", "")
+            stocks = b_item.get("stocks", 0.0)
+            closing = b_item.get("closing", 0.0)
+
+            rows.append({
+                "Date": date_str if first_row else "",
+                "Item_Code": item,
+                "Starting_Stock": starting,
+                "Ending_Stock": ending,
+                "Daily_Usage": usage,
+                "Restock_Added": stocks,
+                "Closing_Stock": closing,
+                "Daily_Total_Sales": sales,
+                "Opening": opening,
+                "Stocks": stocks,
+                "Closing": closing
+            })
+            first_row = False
+
+    df_out = pd.DataFrame(rows)
+    df_out.to_csv(CSV_FILE, index=False)
+    print(f"Saved logbook data to '{CSV_FILE}'")
 
 @app.route("/")
 def index():
@@ -107,23 +238,17 @@ def get_logs():
 def save_log():
     data = request.json or {}
     date_str = data.get("date")
-    sales = data.get("sales", 0)
 
     if not date_str:
         return jsonify({"status": "error", "message": "Date is required"}), 400
 
     logbook_db[date_str] = data
     try:
-        csv_rows = []
-        for d, entry in sorted(logbook_db.items()):
-            s = entry.get("sales", 0)
-            if s > 0:
-                csv_rows.append({"ds": d, "y": s})
-        pd.DataFrame(csv_rows).to_csv(CSV_FILE, index=False)
+        save_logbook_to_csv()
     except Exception as e:
-        print(f"Error saving CSV: {e}")
+        print(f"Error saving to {CSV_FILE}: {e}")
 
-    return jsonify({"status": "success", "message": f"Log saved for {date_str}"})
+    return jsonify({"status": "success", "message": f"Log saved to {CSV_FILE} for {date_str}"})
 
 @app.route("/api/forecast", methods=["GET"])
 def get_forecast():
@@ -135,19 +260,38 @@ def get_forecast():
     if forecast is None:
         return jsonify({"status": "warning", "forecast": []})
 
-    future_forecast = forecast.tail(days)
+    all_dates = sorted(logbook_db.keys())
     results = []
-    for _, row in future_forecast.iterrows():
-        predicted_val = max(0, int(round(row["yhat"])))
-        status_label, category = evaluate_sales_performance(predicted_val)
+    
+    recent_historical_dates = all_dates[-5:] if len(all_dates) >= 5 else all_dates
+    for date_str in recent_historical_dates:
+        sales_val = logbook_db[date_str].get("sales", 0)
+        status_label, category = evaluate_sales_performance(sales_val)
         results.append({
-            "date": row["ds"].strftime("%Y-%m-%d"),
-            "yhat": predicted_val,
-            "yhat_lower": max(0, int(round(row["yhat_lower"]))),
-            "yhat_upper": max(0, int(round(row["yhat_upper"]))),
+            "date": date_str,
+            "yhat": int(round(sales_val)),
+            "yhat_lower": int(round(sales_val)),
+            "yhat_upper": int(round(sales_val)),
             "performance": status_label,
-            "category": category
+            "category": category,
+            "is_actual": True
         })
+
+    future_forecast = forecast.tail(days)
+    for _, row in future_forecast.iterrows():
+        f_date = row["ds"].strftime("%Y-%m-%d")
+        if f_date not in [r["date"] for r in results]:
+            predicted_val = max(0, int(round(row["yhat"])))
+            status_label, category = evaluate_sales_performance(predicted_val)
+            results.append({
+                "date": f_date,
+                "yhat": predicted_val,
+                "yhat_lower": max(0, int(round(row["yhat_lower"]))),
+                "yhat_upper": max(0, int(round(row["yhat_upper"]))),
+                "performance": status_label,
+                "category": category,
+                "is_actual": False
+            })
 
     return jsonify({"status": "success", "period": period, "forecast": results})
 
@@ -160,81 +304,105 @@ def chat_assistant():
     if not user_query:
         return jsonify({"reply": "Please enter a question regarding inventory, sales, or business benchmarks."})
 
-    # Extract date if present in user query (e.g., "2026-10-04")
     date_match = re.search(r'\d{4}-\d{2}-\d{2}', user_query)
     target_date = date_match.group(0) if date_match else None
 
-    # Predict Intent using NLP Model
+    target_items = detect_specific_items(query_lower)
+
+    recognized_keywords = [
+        "sales", "revenue", "earn", "earned", "make", "made", "income",
+        "stock", "stocks", "inventory", "remaining", "restock", "low", "need", "order",
+        "today", "tomorrow", "week", "month", "forecast", "predict", "projection",
+        "target", "targets", "benchmark", "benchmarks", "tier", "tiers", "performance"
+    ]
+    has_recognized_keyword = any(k in query_lower for k in recognized_keywords)
+
+    if not target_date and not has_recognized_keyword and not target_items:
+        return jsonify({
+            "reply": f"Sorry, I couldn't recognize your query '{user_query}'. Please ask a question about daily sales (e.g., 'sales on 2026-10-16'), inventory stocks (e.g., 'remaining stock for Medio'), AI forecasts, or business benchmarks."
+        })
+
     predicted_intent = "general"
     if nlp_model_pipeline:
-        predicted_intent = nlp_model_pipeline.predict([user_query])[0]
+        try:
+            predicted_intent = nlp_model_pipeline.predict([user_query])[0]
+        except Exception:
+            pass
 
-    # Force intent matching for explicit date/stock keywords
-    if "stock" in query_lower or "inventory" in query_lower or "remaining" in query_lower:
+    if target_items or any(k in query_lower for k in ["stock", "inventory", "remaining", "restock", "low", "need"]):
         predicted_intent = "inventory_stocks"
-    elif ("sales" in query_lower or "revenue" in query_lower) and target_date:
+    elif ("sales" in query_lower or "revenue" in query_lower or "earn" in query_lower or "made" in query_lower) and target_date:
         predicted_intent = "date_sales"
 
-    # ==========================================
-    # 1. INVENTORY STOCKS INTENT
-    # ==========================================
-    if predicted_intent == "inventory_stocks":
-        query_date = target_date or list(sorted(logbook_db.keys()))[-1] if logbook_db else None
-        
-        if not query_date or query_date not in logbook_db:
-            return jsonify({"reply": f"📦 **Inventory Query:** No logged stock data found for date `{query_date}`."})
-
-        log_entry = logbook_db[query_date]
-        bottom_data = log_entry.get("bottom", {})
-        top_data = log_entry.get("top", {})
-
-        reply = f"📦 **Inventory & Stock Report for {query_date}:**<br>"
-        found_any = False
-
-        # Check closing stocks (bottom table)
-        for code, full_name in ITEM_NAMES.items():
-            if code in bottom_data:
-                closing_qty = bottom_data[code].get("closing", 0)
-                stocks_qty = bottom_data[code].get("stocks", 0)
-                reply += f"• **{full_name}:** {closing_qty} closing stock (Stocked: {stocks_qty})<br>"
-                found_any = True
-
-        # Check item usage (top table)
-        if top_data:
-            reply += "<br>📋 **Item Usage Breakdown:**<br>"
-            for code, full_name in ITEM_NAMES.items():
-                if code in top_data:
-                    usage = top_data[code].get("usage", 0)
-                    reply += f"• **{full_name}:** {usage} units used<br>"
-
-        if not found_any:
-            reply += "No itemized closing stock records found. Please check the logbook page."
-
-        return jsonify({"reply": reply})
-
-    # ==========================================
-    # 2. DATE-SPECIFIC SALES INTENT
-    # ==========================================
-    if predicted_intent == "date_sales":
-        query_date = target_date or list(sorted(logbook_db.keys()))[-1] if logbook_db else None
+    # 1. DATE-SPECIFIC SALES INTENT
+    if predicted_intent == "date_sales" or (target_date and any(k in query_lower for k in ["sales", "revenue", "earn", "made"])):
+        query_date = target_date
         if query_date in logbook_db:
             sales_val = logbook_db[query_date].get("sales", 0)
             status_text, _ = evaluate_sales_performance(sales_val)
             reply = (
-                f"💰 **Sales Report for {query_date}:**<br>"
-                f"• **Total Revenue:** ₱{sales_val:,.2f}<br>"
-                f"• **Performance:** {status_text}"
+                f"💰 <b>Sales Report for {query_date}:</b><br>"
+                f"• Total Revenue: ₱{sales_val:,.2f}<br>"
+                f"• Performance: {status_text}"
             )
         else:
-            reply = f"⚠️ No historical sales log found for date `{query_date}`."
+            reply = f"Sorry, there is no sales information recorded for the date {query_date} in our dataset."
         return jsonify({"reply": reply})
 
-    # ==========================================
+    # 2. ITEM-SPECIFIC OR OVERALL INVENTORY INTENT
+    if predicted_intent == "inventory_stocks":
+        query_date = target_date or (list(sorted(logbook_db.keys()))[-1] if logbook_db else None)
+        
+        if not query_date or query_date not in logbook_db:
+            return jsonify({"reply": f"Sorry, there is no inventory stock record found for the date {query_date}."})
+
+        log_entry = logbook_db[query_date]
+        top_data = log_entry.get("top", {})
+        bottom_data = log_entry.get("bottom", {})
+
+        # Item-specific query pulled from END column (Ending_Stock)
+        if target_items:
+            reply = f"📦 Inventory Report for {query_date}:<br><br>"
+            for code in target_items:
+                full_name = ITEM_NAMES.get(code, code)
+                end_qty = int(round(top_data.get(code, {}).get("end", 0)))
+                reply += f"• {full_name}:<br>Stocks: {end_qty} cups<br><br>"
+
+            return jsonify({"reply": reply})
+
+        # Restock alert
+        is_restock_query = any(k in query_lower for k in ["restock", "low", "need", "order"])
+        if is_restock_query:
+            reply = f"🚨 Restock Alert for {query_date}:<br><br>"
+            low_items = []
+
+            for code, full_name in ITEM_NAMES.items():
+                end_qty = int(round(top_data.get(code, {}).get("end", 0)))
+                if end_qty <= 10:
+                    low_items.append((full_name, end_qty))
+
+            if low_items:
+                reply += "Items Needing Restock (10 cups or less):<br>"
+                for name, qty in low_items:
+                    reply += f"• {name}: {qty} cups<br>"
+            else:
+                reply += "All item stocks are currently healthy.<br>"
+
+            return jsonify({"reply": reply})
+
+        # Overall Inventory Summary
+        reply = f"📦 Inventory Report for {query_date}:<br>"
+        for code, full_name in ITEM_NAMES.items():
+            if code in top_data:
+                end_qty = int(round(top_data[code].get("end", 0)))
+                reply += f"• {full_name}: {end_qty} cups<br>"
+
+        return jsonify({"reply": reply})
+
     # 3. FORECAST & BUSINESS INTENTS
-    # ==========================================
     forecast = fit_prophet_model(periods=30)
     if forecast is None:
-        return jsonify({"reply": "🤖 **Business Assistant:** Please record sales in the logbook to enable analytics."})
+        return jsonify({"reply": "Business Assistant: Please record sales in the logbook to enable analytics."})
 
     future_30 = forecast.tail(30)
     tomorrow_val = max(0, int(round(future_30.iloc[0]["yhat"])))
@@ -244,26 +412,26 @@ def chat_assistant():
     weekly_status, _ = evaluate_sales_performance(weekly_avg)
 
     if predicted_intent == "tomorrow":
-        reply = f"🔮 **Meta Prophet Forecast for Tomorrow:** ₱{tomorrow_val:,}<br>📌 **Status:** {tomorrow_status}"
+        reply = f"🔮 Meta Prophet Forecast for Tomorrow: ₱{tomorrow_val:,}<br>Status: {tomorrow_status}"
     elif predicted_intent == "week":
-        reply = f"📈 **7-Day Sales Outlook:** ₱{next_week_val:,} (Daily Avg ₱{weekly_avg:,})<br>📌 **Status:** {weekly_status}"
+        reply = f"📈 7-Day Sales Outlook: ₱{next_week_val:,} (Daily Avg ₱{weekly_avg:,})<br>Status: {weekly_status}"
     elif predicted_intent == "month":
         next_month_val = max(0, int(round(future_30["yhat"].sum())))
-        reply = f"🗓️ **30-Day Projected Revenue:** ₱{next_month_val:,}"
+        reply = f"🗓️ 30-Day Projected Revenue: ₱{next_month_val:,}"
     elif predicted_intent == "targets":
         reply = (
-            "🎯 **Mad Potato Business Performance Tiers:**<br>"
-            "• **Operating Deficit:** < ₱2,000 (Loss / Low Traffic)<br>"
-            "• **Underperforming:** ₱2,000 – ₱2,999<br>"
-            "• **Acceptable Range:** ₱3,800 – ₱4,800<br>"
-            "• **High-Performing:** ₱5,000+ (Peak Demand / Weekend)"
+            "🎯 Mad Potato Performance Tiers:<br>"
+            "• Operating Deficit: < ₱2,000<br>"
+            "• Underperforming: ₱2,000 – ₱2,999<br>"
+            "• Acceptable Range: ₱3,800 – ₱4,800<br>"
+            "• High-Performing: ₱5,000+"
         )
     else:
         reply = (
-            f"🤖 **Mad Potato Business & Inventory Assistant:**<br>"
-            f"• Tomorrow's Forecast: ₱{tomorrow_val:,} ({tomorrow_status})<br>"
+            f"🤖 Mad Potato Business & Inventory Assistant:<br>"
+            f"• Tomorrow's Forecast: ₱{tomorrow_val:,}<br>"
             f"• 7-Day Total Forecast: ₱{next_week_val:,}<br>"
-            f"💡 *You can ask me about remaining inventory stocks (Medio, Jumbo, Chicken Poppers), daily sales, or business benchmarks!*"
+            f"You can ask me about stock for specific items (e.g. 'stock for Medio'), daily sales, or forecasts!"
         )
 
     return jsonify({"reply": reply})

@@ -27,60 +27,66 @@ def train_and_save_prophet():
 
     # 1. Load and Parse Dataset
     df = pd.read_csv(CSV_FILE)
-    df['ds'] = pd.to_datetime(df['ds'], dayfirst=True)
-    df = df.dropna().sort_values('ds').reset_index(drop=True)
     
-    print(f"📊 Dataset Loaded: {len(df)} total entries from {df['ds'].min().strftime('%Y-%m-%d')} to {df['ds'].max().strftime('%Y-%m-%d')}")
+    # Map column names if using full logbook format ('Date' -> 'ds', 'Daily_Total_Sales' -> 'y')
+    if 'Date' in df.columns:
+        df['Date'] = df['Date'].ffill()
+        df['ds'] = pd.to_datetime(df['Date'])
+    elif 'ds' in df.columns:
+        df['ds'] = pd.to_datetime(df['ds'], dayfirst=True)
+    else:
+        print("❌ Error: No valid date column found ('Date' or 'ds').")
+        return
 
-    # 2. Filter Extreme Operational Outliers (< ₱1,800)
-    # Excludes extreme flood/disruption days to prevent baseline distortion
-    df_clean = df[df['y'] >= 1800].copy()
+    if 'Daily_Total_Sales' in df.columns:
+        df['y'] = pd.to_numeric(df['Daily_Total_Sales'], errors='coerce')
+    elif 'y' in df.columns:
+        df['y'] = pd.to_numeric(df['y'], errors='coerce')
+
+    # Deduplicate daily records to aggregate total revenue per date
+    df_daily = df.groupby('ds', as_index=False)['y'].first()
+    df_daily = df_daily.dropna().sort_values('ds').reset_index(drop=True)
     
-    # 3. Apply Log-Transformation to $y$ to Stabilize Variance
-    df_clean['y_orig'] = df_clean['y']
-    df_clean['y'] = np.log(df_clean['y'])
+    print(f"📊 Dataset Loaded: {len(df_daily)} unique daily entries from {df_daily['ds'].min().strftime('%Y-%m-%d')} to {df_daily['ds'].max().strftime('%Y-%m-%d')}")
 
-    # 4. Add Regressors
-    df_clean = add_custom_features(df_clean)
+    # 2. Add Custom Features
+    df_clean = add_custom_features(df_daily.copy())
 
-    # 5. Configure & Fit Meta Prophet Model
+    # 3. Configure & Fit High-Sensitivity Prophet Model
     model = Prophet(
         yearly_seasonality=False,
         weekly_seasonality=True,
         daily_seasonality=False,
         seasonality_mode='multiplicative',
-        changepoint_prior_scale=0.05,
-        seasonality_prior_scale=0.5
+        changepoint_prior_scale=0.35,  # High flexibility to track recent sales trend shifts
+        seasonality_prior_scale=2.0,   # High sensitivity to day-of-week patterns
+        holidays_prior_scale=10.0,
+        n_changepoints=30
     )
     
-    # Add custom extra regressors
     model.add_regressor('is_payday')
     model.add_regressor('is_weekend')
     
     model.fit(df_clean)
 
-    # 6. Evaluate In-Sample Predictions (Reverse Log Transform)
+    # 4. In-Sample Evaluation
     in_sample = model.predict(df_clean)
-    in_sample['yhat_actual'] = np.exp(in_sample['yhat'])
-    
-    mae = mean_absolute_error(df_clean['y_orig'], in_sample['yhat_actual'])
-    rmse = np.sqrt(mean_squared_error(df_clean['y_orig'], in_sample['yhat_actual']))
-    mape = np.mean(np.abs((df_clean['y_orig'] - in_sample['yhat_actual']) / df_clean['y_orig'])) * 100
+    mae = mean_absolute_error(df_clean['y'], in_sample['yhat'])
+    rmse = np.sqrt(mean_squared_error(df_clean['y'], in_sample['yhat']))
+    mape = np.mean(np.abs((df_clean['y'] - in_sample['yhat']) / df_clean['y'])) * 100
 
-    print("\n=== 📈 Meta Prophet Training Evaluation ===")
+    print("\n=== 📈 Meta Prophet Retrained Evaluation ===")
     print(f"Mean Absolute Error (MAE)     : ₱{mae:.2f}")
     print(f"Root Mean Squared Error (RMSE): ₱{rmse:.2f}")
     print(f"Mean Absolute Percentage Error: {mape:.2f}%")
 
-    # 7. Generate 90-Day Future Forecast Dataframe
+    # 5. Generate 90-Day Forecast
     future = model.make_future_dataframe(periods=90, freq='D')
     future = add_custom_features(future)
     
     forecast = model.predict(future)
-    forecast['yhat'] = np.exp(forecast['yhat']) # Convert back from log scale
     forecast['ds_str'] = forecast['ds'].dt.strftime('%Y-%m-%d')
 
-    # Assign Performance Tiers
     def assign_performance_tier(yhat):
         if yhat < 2000:
             return "Operating Deficit 🚨 (<₱2,000)"
@@ -93,11 +99,11 @@ def train_and_save_prophet():
 
     forecast['performance'] = forecast['yhat'].apply(assign_performance_tier)
 
-    # 8. Save Model and Forecast Cache
+    # 6. Save Model Artifacts
     joblib.dump(model, MODEL_OUTPUT)
     joblib.dump(forecast, FORECAST_OUTPUT)
-    print(f"\n✅ Saved Optimized Meta Prophet Model -> `{MODEL_OUTPUT}`")
-    print(f"✅ Saved 90-Day Forecast Cache -> `{FORECAST_OUTPUT}`")
+    print(f"\n✅ Retrained Meta Prophet Model saved to `{MODEL_OUTPUT}`")
+    print(f"✅ Saved updated forecast cache to `{FORECAST_OUTPUT}`")
 
 if __name__ == '__main__':
     train_and_save_prophet()
