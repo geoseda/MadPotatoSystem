@@ -345,6 +345,16 @@
       align-self: flex-start;
     }
 
+    .typing-cursor::after {
+      content: '|';
+      animation: blink 0.7s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
     .chat-input-area {
       display: flex;
       gap: 6px;
@@ -555,7 +565,7 @@
             </div>
             <div class="chat-input-area">
               <input type="text" id="chat-input" class="chat-input" placeholder="Ask e.g. 'What is today's forecast?'..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-              <button class="send-btn" onclick="sendChatMessage()">Send</button>
+              <button class="send-btn" id="chat-send-btn" onclick="sendChatMessage()">Send</button>
             </div>
           </div>
         </section>
@@ -683,6 +693,7 @@
     const bottomItems = ['M', 'G', 'J', 'MG', '2XL', '3XL', 'JC'];
 
     let cachedDB = {};
+    let isTyping = false;
 
     function getBarClass(amount) {
       if (amount < 2000) return 'bar-deficit';
@@ -931,7 +942,6 @@
       const statusEl = document.getElementById('log-status');
       statusEl.textContent = `Syncing logs for ${dateVal}...`;
 
-      // 1. Check local memory first
       if (cachedDB[dateVal]) {
         populateLogUI(cachedDB[dateVal]);
         statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache ✅)`;
@@ -939,7 +949,6 @@
         populateLogUI(null);
       }
 
-      // 2. Fetch directly from Google Sheets cloud storage
       if (GOOGLE_SCRIPT_URL) {
         try {
           const res = await fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}`);
@@ -1098,17 +1107,62 @@
       });
     }
 
+    // ==========================================
+    // TYPING EFFECT CHATBOT ENGINE
+    // ==========================================
+
+    function typeMessage(element, htmlContent, speed = 15) {
+      isTyping = true;
+      element.classList.add('typing-cursor');
+      let index = 0;
+      let tempHTML = '';
+
+      const timer = setInterval(() => {
+        if (index < htmlContent.length) {
+          if (htmlContent[index] === '<') {
+            const closingTagIndex = htmlContent.indexOf('>', index);
+            if (closingTagIndex !== -1) {
+              tempHTML += htmlContent.substring(index, closingTagIndex + 1);
+              index = closingTagIndex + 1;
+            } else {
+              tempHTML += htmlContent[index];
+              index++;
+            }
+          } else {
+            tempHTML += htmlContent[index];
+            index++;
+          }
+
+          element.innerHTML = tempHTML;
+          const chatContainer = document.getElementById('chat-messages');
+          if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+        } else {
+          clearInterval(timer);
+          element.classList.remove('typing-cursor');
+          isTyping = false;
+        }
+      }, speed);
+    }
+
     async function sendChatMessage() {
+      if (isTyping) return;
+
       const input = document.getElementById('chat-input');
       const text = input ? input.value.trim() : '';
       if (!text) return;
 
       const chatContainer = document.getElementById('chat-messages');
+      
       const userMsg = document.createElement('div');
       userMsg.className = 'message user-msg';
       userMsg.textContent = text;
       chatContainer.appendChild(userMsg);
       input.value = '';
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      const botMsg = document.createElement('div');
+      botMsg.className = 'message bot-msg';
+      chatContainer.appendChild(botMsg);
 
       try {
         const res = await fetch(`${API_BASE_URL}/chat`, {
@@ -1117,18 +1171,10 @@
           body: JSON.stringify({ query: text })
         });
         const data = await res.json();
-
-        const botMsg = document.createElement('div');
-        botMsg.className = 'message bot-msg';
-        botMsg.innerHTML = data.reply;
-        chatContainer.appendChild(botMsg);
+        typeMessage(botMsg, data.reply || 'No response from assistant.');
       } catch (err) {
-        const botMsg = document.createElement('div');
-        botMsg.className = 'message bot-msg';
-        botMsg.textContent = 'Error connecting to Meta Prophet service on app.py.';
-        chatContainer.appendChild(botMsg);
+        typeMessage(botMsg, 'Error connecting to Meta Prophet service on app.py.');
       }
-      chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
     function switchTab(tabId) {
