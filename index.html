@@ -6,153 +6,273 @@
   <title>Mad Potato Management System</title>
   <style>
     :root {
-      --mp-green: #15803d;
-      --mp-green-dark: #0f5127;
-      --mp-yellow: #facc15;
-      --mp-yellow-bg: #fef08a;
-      --mp-yellow-card: #fef9c3;
-      --card-white: #ffffff;
-      --text-dark: #1f2937;
-      --text-muted: #4b5563;
-      --border-color: #e5e7eb;
-      --sidebar-width: 220px;
+      --mp-green-700: #15803d;
+      --mp-green-800: #166534;
+      --mp-green-900: #0f5127;
+      --mp-green-light: #f0fdf4;
+      --mp-green-glow: rgba(21, 128, 61, 0.25);
+      
+      --mp-yellow-500: #facc15;
+      --mp-yellow-400: #fde047;
+      --mp-yellow-300: #fef08a;
+      --mp-yellow-bg: #faf0ca;
+      --mp-yellow-card: #fefce8;
+      --mp-yellow-border: #fef08a;
+      
+      --surface-card: #fffdf0;
+      --surface-inner: #fefae0;
+      
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      
+      --sidebar-width: 260px;
+      --sidebar-collapsed-width: 76px;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      
+      --shadow-soft: 0 4px 20px -2px rgba(0,0,0,0.05), 0 2px 6px -1px rgba(0,0,0,0.02);
+      --shadow-hover: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 10px -2px rgba(0,0,0,0.04);
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
       background-color: var(--mp-yellow-bg);
-      color: var(--text-dark);
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(250, 204, 21, 0.15) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(21, 128, 61, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
       display: flex;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
+    /* --- SIDEBAR STYLING --- */
     .sidebar {
       width: var(--sidebar-width);
-      background-color: var(--mp-green);
-      padding: 20px 0;
+      background: linear-gradient(185deg, #166534 0%, #0f5127 100%);
+      padding: 24px 16px;
       display: flex;
       flex-direction: column;
       color: #ffffff;
-      box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.12);
       flex-shrink: 0;
+      transition: var(--transition);
+      z-index: 100;
+      position: relative;
+    }
+
+    body.sidebar-collapsed .sidebar {
+      width: var(--sidebar-collapsed-width);
     }
 
     .brand {
-      padding: 0 16px 20px 16px;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 24px;
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      overflow: hidden;
     }
 
     .brand-icon {
-      background-color: var(--mp-yellow);
+      background: linear-gradient(135deg, var(--mp-yellow-400) 0%, var(--mp-yellow-500) 100%);
       color: #000;
       font-weight: 900;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 18px;
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      flex-shrink: 0;
     }
 
     .brand-title {
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
       color: #ffffff;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    body.sidebar-collapsed .brand-title {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    .hamburger-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .hamburger-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    .hamburger-icon {
+      width: 18px;
+      height: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hamburger-icon span {
+      display: block;
+      height: 2px;
+      width: 100%;
+      background-color: #fff;
+      border-radius: 2px;
     }
 
     .nav-menu {
       list-style: none;
       display: flex;
       flex-direction: column;
+      gap: 10px;
     }
 
     .nav-item button {
       width: 100%;
-      background: none;
+      background: transparent;
       border: none;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 20px;
-      color: #ffffff;
+      gap: 14px;
+      padding: 13px 16px;
+      color: rgba(255, 255, 255, 0.85);
       font-size: 14px;
       font-weight: 600;
       text-align: left;
       cursor: pointer;
-      transition: background 0.2s, border-left 0.2s;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      white-space: nowrap;
     }
 
-    .nav-item.active button, .nav-item button:hover {
-      background-color: var(--mp-green-dark);
-      border-left: 5px solid var(--mp-yellow);
+    .nav-item button .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
     }
 
+    .nav-item.active button {
+      background: linear-gradient(135deg, var(--mp-yellow-400) 0%, var(--mp-yellow-500) 100%);
+      color: var(--text-main);
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
+    }
+
+    .nav-item button:hover:not(.active) {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      transform: translateX(3px);
+    }
+
+    body.sidebar-collapsed .nav-text {
+      display: none;
+    }
+
+    /* --- MAIN LAYOUT --- */
     .main-content {
       flex: 1;
-      padding: 20px;
+      padding: 24px 32px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      background-color: var(--mp-yellow-bg);
+      gap: 22px;
       overflow-y: auto;
+      max-width: 100%;
     }
 
     .header {
-      background-color: var(--mp-yellow);
-      border-radius: 8px;
-      padding: 14px 20px;
+      background: linear-gradient(135deg, #fffdf0 0%, #fef8c3 100%);
+      border-radius: var(--radius-md);
+      padding: 18px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(250, 204, 21, 0.5);
+      flex-wrap: wrap;
+      gap: 14px;
     }
 
     .header-title h1 {
-      font-size: 18px;
-      font-weight: bold;
-      color: #000;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .clock-badge {
-      background-color: #ffffff;
-      color: var(--mp-green-dark);
-      padding: 6px 12px;
-      border-radius: 20px;
+      background-color: rgba(255, 255, 255, 0.8);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 30px;
       font-size: 12px;
-      font-weight: bold;
-      border: 1px solid rgba(0,0,0,0.1);
+      font-weight: 600;
+      border: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      backdrop-filter: blur(4px);
     }
 
     .branch-badge {
-      background-color: var(--mp-green);
+      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
       color: #fff;
-      padding: 6px 12px;
-      border-radius: 20px;
+      padding: 8px 16px;
+      border-radius: 30px;
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
+      box-shadow: 0 2px 8px var(--mp-green-glow);
     }
 
     .sync-badge {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
+      font-size: 12px;
+      padding: 8px 14px;
+      border-radius: 30px;
+      font-weight: 700;
       background-color: #e2e8f0;
       color: #475569;
     }
@@ -160,194 +280,176 @@
     .sync-online {
       background-color: #dcfce7;
       color: #15803d;
+      border: 1px solid #bbf7d0;
     }
 
     .sync-busy {
       background-color: #fef3c7;
       color: #b45309;
+      border: 1px solid #fde68a;
     }
 
     .page-view {
       display: none;
       flex-direction: column;
-      gap: 16px;
+      gap: 22px;
     }
 
     .page-view.active {
       display: flex;
     }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 16px;
-    }
-
     .grid-1 {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 22px;
     }
 
     .card {
-      background-color: var(--card-white);
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-      border: 1px solid var(--border-color);
+      background: var(--surface-card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(250, 204, 21, 0.35);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 18px;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-hover);
     }
 
     .card-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: var(--text-dark);
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 8px;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-main);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+      padding-bottom: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
     .summary-box {
       background-color: var(--mp-yellow-card);
-      border: 1px solid var(--mp-yellow);
-      border-left: 5px solid var(--mp-green);
-      padding: 10px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      line-height: 1.4;
+      border: 1px solid rgba(250, 204, 21, 0.6);
+      border-left: 6px solid var(--mp-green-700);
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     .summary-header {
-      font-weight: bold;
-      color: var(--mp-green-dark);
-      margin-bottom: 4px;
-      font-size: 11px;
+      font-weight: 800;
+      color: var(--mp-green-900);
+      margin-bottom: 6px;
+      font-size: 12px;
       text-transform: uppercase;
+      letter-spacing: 0.6px;
     }
 
-    .benchmark-legend {
-      display: flex;
-      gap: 12px;
-      font-size: 10px;
-      font-weight: bold;
-      padding: 6px 10px;
-      background-color: #f8fafc;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-      flex-wrap: wrap;
-    }
-
-    .legend-item {
+    /* --- ASSISTANT CHAT CONTAINER --- */
+    .assistant-header {
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #fef08a 0%, #fef9c3 100%);
+      padding: 12px 18px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      border-bottom: 1px solid rgba(250, 204, 21, 0.5);
     }
 
-    .legend-color {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-    }
-
-    .chart-container {
-      height: 220px;
+    .assistant-profile {
       display: flex;
-      align-items: flex-end;
-      justify-content: space-around;
-      padding: 20px 10px 10px 10px;
-      background-color: #fafafa;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-    }
-
-    .chart-bar-wrap {
-      display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      height: 100%;
-      justify-content: flex-end;
-      flex: 1;
-      max-width: 60px;
+      gap: 10px;
     }
 
-    .chart-bar {
-      width: 70%;
-      border-radius: 4px 4px 0 0;
-      transition: height 0.4s ease;
-      position: relative;
-    }
-
-    .bar-deficit { background-color: #ef4444; }
-    .bar-bad { background-color: #f97316; }
-    .bar-below-avg { background-color: #eab308; }
-    .bar-acceptable { background-color: #22c55e; }
-    .bar-successful { background-color: #0284c7; }
-
-    .chart-bar-value {
-      position: absolute;
-      top: -16px;
-      font-size: 9px;
+    .avatar-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--mp-green-700);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
       font-weight: bold;
-      width: 100%;
-      text-align: center;
-      color: var(--text-dark);
+      box-shadow: 0 2px 6px var(--mp-green-glow);
     }
 
-    .chart-label {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: bold;
-      text-align: center;
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      background-color: #22c55e;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px #22c55e;
     }
 
     .chat-container {
-      height: 300px;
+      height: 520px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      background-color: #fafafa;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 10px;
+      background: linear-gradient(180deg, #fefae0 0%, #fef3c7 100%);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      gap: 14px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
     }
 
     .chat-messages {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 14px;
       overflow-y: auto;
-      padding-right: 4px;
+      padding-right: 8px;
+      flex: 1;
     }
 
     .message {
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      max-width: 90%;
-      line-height: 1.3;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      max-width: 78%;
+      line-height: 1.55;
+      box-shadow: var(--shadow-soft);
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .user-msg {
-      background-color: var(--mp-green);
-      color: #fff;
+      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
+      color: #ffffff;
       align-self: flex-end;
+      border-bottom-right-radius: 4px;
     }
 
     .bot-msg {
-      background-color: var(--mp-yellow-card);
-      border: 1px solid var(--mp-yellow);
-      color: var(--text-dark);
+      background: #ffffff;
+      border: 1px solid rgba(250, 204, 21, 0.8);
+      color: var(--text-main);
       align-self: flex-start;
+      border-bottom-left-radius: 4px;
     }
 
     .typing-cursor::after {
-      content: '|';
-      animation: blink 0.7s infinite;
+      content: '▋';
+      animation: blink 0.8s infinite;
+      color: var(--mp-green-900);
+      margin-left: 2px;
     }
 
     @keyframes blink {
@@ -355,165 +457,344 @@
       50% { opacity: 0; }
     }
 
+    .chat-chips {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 2px 6px 2px;
+    }
+
+    .chip-btn {
+      background: #ffffff;
+      border: 1px solid rgba(250, 204, 21, 0.8);
+      border-radius: 30px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .chip-btn:hover {
+      background-color: var(--mp-green-700);
+      border-color: var(--mp-green-700);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px var(--mp-green-glow);
+    }
+
     .chat-input-area {
       display: flex;
-      gap: 6px;
-      margin-top: 6px;
+      gap: 12px;
+      background: #ffffff;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid rgba(250, 204, 21, 0.6);
+      box-shadow: var(--shadow-soft);
+      transition: var(--transition);
+    }
+
+    .chat-input-area:focus-within {
+      border-color: var(--mp-green-700);
+      box-shadow: 0 0 0 4px var(--mp-green-glow);
     }
 
     .chat-input {
       flex: 1;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      padding: 6px 8px;
-      font-size: 11px;
+      border: none;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      background: transparent;
+      color: var(--text-main);
     }
 
     .send-btn {
-      background-color: var(--mp-green);
+      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
       color: #fff;
       border: none;
-      padding: 0 12px;
-      border-radius: 4px;
-      font-weight: bold;
+      padding: 0 24px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 13px;
+      transition: var(--transition);
+      box-shadow: 0 4px 10px var(--mp-green-glow);
     }
 
+    .send-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    /* --- FORECAST & CHARTS --- */
+    .benchmark-legend {
+      display: flex;
+      gap: 18px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 12px 18px;
+      background-color: var(--surface-inner);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .chart-container {
+      height: 300px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 32px 20px 16px 20px;
+      background: var(--surface-inner);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    .chart-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+      justify-content: flex-end;
+      flex: 1;
+      max-width: 65px;
+    }
+
+    .chart-bar {
+      width: 80%;
+      border-radius: 6px 6px 0 0;
+      transition: height 0.5s ease;
+      position: relative;
+    }
+
+    .bar-deficit { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }
+    .bar-bad { background: linear-gradient(180deg, #f97316 0%, #ea580c 100%); }
+    .bar-below-avg { background: linear-gradient(180deg, #eab308 0%, #ca8a04 100%); }
+    .bar-acceptable { background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); }
+    .bar-successful { background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%); }
+
+    .chart-bar-value {
+      position: absolute;
+      top: -22px;
+      font-size: 11px;
+      font-weight: 800;
+      width: 100%;
+      text-align: center;
+      color: var(--text-main);
+    }
+
+    .chart-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* --- LOGBOOK & TABLES --- */
     .logbook-toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #f9fafb;
-      padding: 10px;
+      background-color: var(--surface-inner);
+      padding: 14px 18px;
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      margin-bottom: 8px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
     }
 
     .date-picker-group {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: bold;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .date-input, .select-control {
-      padding: 6px 10px;
+      padding: 8px 14px;
       border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      color: var(--text-dark);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
       outline: none;
+      background-color: #ffffff;
+      transition: var(--transition);
+    }
+
+    .date-input:focus, .select-control:focus {
+      border-color: var(--mp-green-700);
+      box-shadow: 0 0 0 3px var(--mp-green-glow);
     }
 
     .notebook-container {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-width: 650px;
+      gap: 20px;
+      max-width: 720px;
       margin: 0 auto;
       width: 100%;
     }
 
     .logbook-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 13px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
     }
 
     .logbook-table th {
-      background-color: var(--mp-green);
+      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-800) 100%);
       color: #fff;
       text-align: center;
-      padding: 6px 10px;
+      padding: 12px;
       font-size: 11px;
+      font-weight: 800;
       text-transform: uppercase;
-      border: 1px solid var(--mp-green-dark);
+      letter-spacing: 0.6px;
     }
 
     .logbook-table td {
-      padding: 4px 8px;
-      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
       text-align: center;
+      background-color: #ffffff;
+    }
+
+    .logbook-table td:last-child {
+      border-right: none;
     }
 
     .item-label {
-      font-weight: bold;
-      width: 80px;
-      background-color: #f3f4f6;
+      font-weight: 800;
+      width: 90px;
+      background-color: var(--surface-inner) !important;
+      color: var(--text-main);
     }
 
     .grid-input {
       width: 100%;
-      padding: 4px;
+      padding: 8px;
       border: 1px solid var(--border-color);
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       text-align: center;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
+      transition: var(--transition);
     }
 
     .grid-input:focus {
-      border-color: var(--mp-green);
+      border-color: var(--mp-green-700);
       outline: none;
-      background-color: #f0fdf4;
+      background-color: var(--mp-green-light);
+      box-shadow: 0 0 0 3px var(--mp-green-glow);
     }
 
     .sales-box-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
       margin-top: 12px;
       background-color: var(--mp-yellow-card);
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid var(--mp-yellow);
+      padding: 18px 22px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--mp-yellow-500);
     }
 
     .btn-action {
-      background-color: var(--mp-green);
+      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
       color: #fff;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
       font-size: 12px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: var(--transition);
+      box-shadow: 0 4px 10px var(--mp-green-glow);
     }
 
     .btn-action:hover {
-      background-color: var(--mp-green-dark);
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        height: 100vh;
+      }
+      body.sidebar-open .sidebar {
+        left: 0;
+      }
     }
   </style>
 </head>
 <body>
 
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo">
         <span class="brand-icon">MP</span>
         <span class="brand-title">MAD POTATO</span>
       </div>
+      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation">
+        <div class="hamburger-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </button>
     </div>
     <ul class="nav-menu">
       <li class="nav-item active" id="nav-dashboard">
-        <button onclick="switchTab('dashboard')">🏠 Dashboard</button>
+        <button onclick="switchTab('dashboard')">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">Dashboard</span>
+        </button>
       </li>
       <li class="nav-item" id="nav-forecast">
-        <button onclick="switchTab('forecast')">📈 Sales Forecast</button>
+        <button onclick="switchTab('forecast')">
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">Sales Forecast</span>
+        </button>
       </li>
       <li class="nav-item" id="nav-logbook">
-        <button onclick="switchTab('logbook')">📝 Digitized Logbook</button>
+        <button onclick="switchTab('logbook')">
+          <span class="nav-icon">📝</span>
+          <span class="nav-text">Digitized Logbook</span>
+        </button>
       </li>
       <li class="nav-item" id="nav-settings">
-        <button onclick="switchTab('settings')">⚙️ Settings</button>
+        <button onclick="switchTab('settings')">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Settings</span>
+        </button>
       </li>
     </ul>
   </aside>
@@ -521,51 +802,59 @@
   <main class="main-content">
     <header class="header">
       <div class="header-title">
-        <h1 id="page-header-title">Mad Potato Management System: AI Sales Forecasting & Inventory Dashboard</h1>
+        <h1 id="page-header-title">Mad Potato Management System: MAPO Assistant Dashboard</h1>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="header-badges">
         <span id="realtime-clock" class="clock-badge">🕒 Loading Clock...</span>
         <span id="sync-status" class="sync-badge">Connecting...</span>
         <span class="branch-badge">Teresa Branch</span>
       </div>
     </header>
 
-    <!-- DASHBOARD VIEW -->
+    <!-- DASHBOARD VIEW: MAPO ASSISTANT WORKSPACE -->
     <div id="page-dashboard" class="page-view active">
-      <div class="grid-2">
+      <div class="grid-1">
         <section class="card">
-          <div class="card-title">
-            <span>AI Sales Analytics Overview</span>
-            <span style="font-size: 11px; color: var(--mp-green-dark);" id="dashboard-trend-badge">Meta Prophet Engine</span>
+          <div class="assistant-header">
+            <div class="assistant-profile">
+              <div class="avatar-icon">🤖</div>
+              <div>
+                <strong style="font-size: 15px;">MAPO ASSISTANT</strong>
+                <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 5px;">
+                  <span class="status-dot"></span> Active
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="summary-box">
-            <div class="summary-header">🤖 Meta Prophet Executive Summary</div>
-            <span id="dashboard-summary-text">
-              Connecting to Meta Prophet forecasting backend...
-            </span>
-          </div>
-
-          <div class="benchmark-legend">
-            <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div> Deficit (&lt;₱2k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#f97316;"></div> Underperforming (&lt;₱3k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#22c55e;"></div> Acceptable (₱3.8k-₱4.8k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div> High-Performing (&gt;₱5k)</div>
-          </div>
-
-          <div class="chart-container" id="dashboard-chart"></div>
-        </section>
-
-        <section class="card">
-          <div class="card-title">
-            <span>MAPO ASSISTANT</span>
-          </div>
+          
           <div class="chat-container">
             <div class="chat-messages" id="chat-messages">
-              <div class="message bot-msg">Hello! Ask me about <strong>today's prediction</strong>, <strong>next week</strong>, or business <strong>benchmarks</strong>!</div>
+              <div class="message bot-msg">
+                Hello! I am <strong>MAPO Assistant</strong>. Ask me about <strong>today's prediction</strong>, <strong>next week's outlook</strong>, inventory levels, or update stock directly!
+              </div>
             </div>
+            
+            <div class="chat-chips">
+              <button class="chip-btn" onclick="sendChipQuery('What is today\'s sales forecast?')">📊 Today's Forecast</button>
+              <button class="chip-btn" onclick="sendChipQuery('What is next week\'s projected revenue?')">📅 Next Week Outlook</button>
+              <button class="chip-btn" onclick="sendChipQuery('Show current inventory status')">📦 Inventory Status</button>
+              <button class="chip-btn" onclick="sendChipQuery('add 50 cups of medio')">➕ Add 50 Medio</button>
+            </div>
+
             <div class="chat-input-area">
-              <input type="text" id="chat-input" class="chat-input" placeholder="Ask e.g. 'What is today's forecast?'..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-              <button class="send-btn" id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+              <input 
+                type="text" 
+                id="chat-input" 
+                class="chat-input" 
+                placeholder="Ask e.g. 'add 50 cups of medio' or 'sales for October 16'..." 
+                onkeydown="if(event.key==='Enter') { event.preventDefault(); sendChatMessage(); }"
+              >
+              <button 
+                type="button" 
+                class="send-btn" 
+                id="chat-send-btn" 
+                onclick="event.preventDefault(); sendChatMessage();"
+              >Send</button>
             </div>
           </div>
         </section>
@@ -578,8 +867,8 @@
         <section class="card">
           <div class="card-title">
             <span>Detailed AI Sales Forecasting</span>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <label for="forecast-period" style="font-size: 12px; font-weight: bold;">Forecast View:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <label for="forecast-period" style="font-size: 13px; font-weight: 700;">Forecast View:</label>
               <select id="forecast-period" class="select-control" onchange="renderForecastPage()">
                 <option value="tomorrow">Today's Forecast</option>
                 <option value="next_week" selected>Next Week (7-Day Projection)</option>
@@ -588,7 +877,7 @@
             </div>
           </div>
           <div class="summary-box">
-            <div class="summary-header">📊 Demand Trends & Target Analysis</div>
+            <div class="summary-header">📊 Demand Trends & Meta Prophet Target Analysis</div>
             <span id="forecast-analysis-text">
               Calculating Meta Prophet forecast model based on daily sales inputs...
             </span>
@@ -601,7 +890,7 @@
             <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div> High-Performing (&gt;₱5k)</div>
           </div>
 
-          <div class="chart-container" style="height: 240px;" id="forecast-page-chart"></div>
+          <div class="chart-container" id="forecast-page-chart"></div>
         </section>
       </div>
     </div>
@@ -612,8 +901,8 @@
         <section class="card">
           <div class="card-title">
             <span>Digitized Handwritten Logbook Page</span>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn-action" style="background-color: #0284c7;" onclick="loadLogForDate()">🔄 Sync / Load Logs</button>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn-action" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);" onclick="loadLogForDate()">🔄 Sync / Load Logs</button>
               <button class="btn-action" onclick="saveLogbookData()">💾 Save Logbook Entry</button>
             </div>
           </div>
@@ -623,7 +912,7 @@
               <label for="log-date">📅 Select Log Date:</label>
               <input type="date" id="log-date" class="date-input" onchange="loadLogForDate()">
             </div>
-            <span id="log-status" style="font-size: 11px; color: var(--mp-green-dark); font-weight: bold;">
+            <span id="log-status" style="font-size: 12px; color: var(--mp-green-900); font-weight: 700;">
               Viewing log for selected date
             </span>
           </div>
@@ -632,7 +921,7 @@
             <table class="logbook-table">
               <thead>
                 <tr>
-                  <th style="width: 80px;">ITEM</th>
+                  <th style="width: 90px;">ITEM</th>
                   <th>STARTING</th>
                   <th>END</th>
                   <th>USAGE</th>
@@ -644,7 +933,7 @@
             <table class="logbook-table">
               <thead>
                 <tr>
-                  <th style="width: 80px;">ITEM</th>
+                  <th style="width: 90px;">ITEM</th>
                   <th>OPENING</th>
                   <th>STOCKS</th>
                   <th>CLOSING</th>
@@ -654,8 +943,8 @@
             </table>
 
             <div class="sales-box-container">
-              <label for="total-sales-input" style="font-size: 13px; font-weight: bold;">💰 Total Sales For The Day (₱):</label>
-              <input type="number" id="total-sales-input" class="grid-input" style="width: 180px; font-size: 14px; text-align: right;" placeholder="3800">
+              <label for="total-sales-input" style="font-size: 14px; font-weight: 700;">💰 Total Sales For The Day (₱):</label>
+              <input type="number" id="total-sales-input" class="grid-input" style="width: 180px; font-size: 15px; text-align: right;" placeholder="3800">
             </div>
           </div>
         </section>
@@ -669,12 +958,14 @@
           <div class="card-title">
             <span>System Settings</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12px;">
-            <label><strong>Branch Name:</strong> Teresa Branch</label>
-            <div>
-              <label style="display: block; margin-bottom: 4px;"><strong>Google Sheets Web App URL:</strong></label>
-              <input type="text" id="script-url-input" class="grid-input" style="text-align: left; width: 100%; max-width: 550px; padding: 6px;" placeholder="Paste Web App URL here...">
-              <button class="btn-action" style="margin-top: 6px;" onclick="saveApiUrl()">Save Web App URL</button>
+          <div style="display: flex; flex-direction: column; gap: 16px; font-size: 13px;">
+            <div><strong>Branch Name:</strong> Teresa Branch</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label><strong>Google Sheets Web App URL:</strong></label>
+              <input type="text" id="script-url-input" class="grid-input" style="text-align: left; width: 100%; max-width: 550px; padding: 10px;" placeholder="Paste Web App URL here...">
+              <div>
+                <button class="btn-action" style="margin-top: 6px;" onclick="saveApiUrl()">Save Web App URL</button>
+              </div>
             </div>
           </div>
         </section>
@@ -694,6 +985,19 @@
 
     let cachedDB = {};
     let isTyping = false;
+
+    function toggleSidebar() {
+      document.body.classList.toggle('sidebar-collapsed');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+    function sendChipQuery(text) {
+      const input = document.getElementById('chat-input');
+      if (input) {
+        input.value = text;
+        sendChatMessage();
+      }
+    }
 
     function getBarClass(amount) {
       if (amount < 2000) return 'bar-deficit';
@@ -782,10 +1086,6 @@
         bottomTbody.appendChild(tr);
       });
     }
-
-    // ==========================================
-    // LOGBOOK CALCULATION ENGINE
-    // ==========================================
 
     function getVal(id) {
       const el = document.getElementById(id);
@@ -890,10 +1190,6 @@
         setVal(`starting-${item}`, (getVal(`opening-${item}`) || 0) + (getVal(`stocks-${item}`) || 0));
       }
     }
-
-    // ==========================================
-    // UI POPULATION & CLOUD SYNC
-    // ==========================================
 
     function populateLogUI(log) {
       topItems.forEach(i => {
@@ -1012,9 +1308,8 @@
           }).catch(err => console.warn("Google Sheets Sync Warning:", err));
         }
 
-        alert(`Entry for ${dateVal} saved and synced to Google Sheets!`);
+        alert(`Entry for ${dateVal} saved and synced!`);
         await fetchBackendLogs();
-        updateDashboard();
         renderForecastPage();
       } catch (err) {
         alert('Failed to save log entry.');
@@ -1026,43 +1321,6 @@
       GOOGLE_SCRIPT_URL = url;
       localStorage.setItem('mad_potato_api_url', url);
       alert('Google Sheet Web App URL saved!');
-    }
-
-    async function updateDashboard() {
-      const forecastData = await fetchProphetForecast('tomorrow');
-      const chartContainer = document.getElementById('dashboard-chart');
-      if (!chartContainer) return;
-      chartContainer.innerHTML = '';
-
-      const history = Object.keys(cachedDB)
-        .sort()
-        .slice(-5)
-        .map(d => ({ label: d.slice(5), sales: cachedDB[d].sales || 0, isForecast: false }));
-
-      if (forecastData.length > 0) {
-        const tomPred = forecastData[0];
-        history.push({ label: 'Today*', sales: tomPred.yhat, isForecast: true, performance: tomPred.performance });
-        const summaryEl = document.getElementById('dashboard-summary-text');
-        if (summaryEl) {
-          summaryEl.innerHTML = `Meta Prophet projects <strong>₱${tomPred.yhat.toLocaleString()}</strong> for today.<br>📌 <strong>Performance Level:</strong> ${tomPred.performance}`;
-        }
-      }
-
-      const maxSales = Math.max(...history.map(h => h.sales), 5500);
-
-      history.forEach(h => {
-        const heightPercent = Math.min(Math.round((h.sales / maxSales) * 100), 100);
-        const barColorClass = getBarClass(h.sales);
-        const barWrap = document.createElement('div');
-        barWrap.className = 'chart-bar-wrap';
-        barWrap.innerHTML = `
-          <div class="chart-bar ${barColorClass}" style="height: ${heightPercent}%;">
-            <span class="chart-bar-value">₱${h.sales.toLocaleString()}</span>
-          </div>
-          <span class="chart-label">${h.label}</span>
-        `;
-        chartContainer.appendChild(barWrap);
-      });
     }
 
     async function renderForecastPage() {
@@ -1107,11 +1365,26 @@
       });
     }
 
-    // ==========================================
-    // TYPING EFFECT CHATBOT ENGINE
-    // ==========================================
+    function saveChat() {
+      try {
+        const c = document.getElementById('chat-messages');
+        if (c) sessionStorage.setItem('mapo_chat_html', c.innerHTML);
+      } catch (e) {}
+    }
 
-    function typeMessage(element, htmlContent, speed = 15) {
+    function restoreChat() {
+      try {
+        const saved = sessionStorage.getItem('mapo_chat_html');
+        const c = document.getElementById('chat-messages');
+        if (saved && c) {
+          c.innerHTML = saved;
+          c.querySelectorAll('.typing-cursor').forEach(el => el.classList.remove('typing-cursor'));
+          c.scrollTop = c.scrollHeight;
+        }
+      } catch (e) {}
+    }
+
+    function typeMessage(element, htmlContent, speed = 15, onComplete = null) {
       isTyping = true;
       element.classList.add('typing-cursor');
       let index = 0;
@@ -1140,6 +1413,8 @@
           clearInterval(timer);
           element.classList.remove('typing-cursor');
           isTyping = false;
+          saveChat();
+          if (typeof onComplete === 'function') onComplete();
         }
       }, speed);
     }
@@ -1157,6 +1432,7 @@
       userMsg.className = 'message user-msg';
       userMsg.textContent = text;
       chatContainer.appendChild(userMsg);
+      saveChat();
       input.value = '';
       chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -1171,7 +1447,17 @@
           body: JSON.stringify({ query: text })
         });
         const data = await res.json();
-        typeMessage(botMsg, data.reply || 'No response from assistant.');
+        
+        if (data.is_stock_updated) {
+          botMsg.innerHTML = data.reply || 'Stock updated.';
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          saveChat();
+          await fetchBackendLogs();
+          loadLogForDate();
+          renderForecastPage();
+        } else {
+          typeMessage(botMsg, data.reply || 'No response from assistant.', 15);
+        }
       } catch (err) {
         typeMessage(botMsg, 'Error connecting to Meta Prophet service on app.py.');
       }
@@ -1189,19 +1475,20 @@
 
       const headerTitle = document.getElementById('page-header-title');
       const titles = {
-        'dashboard': 'Mad Potato Management System: AI Sales Forecasting & Inventory Dashboard',
+        'dashboard': 'Mad Potato Management System: MAPO Assistant Dashboard',
         'forecast': 'AI Sales Forecasting & Demand Analytics',
         'logbook': 'Digitized Handwritten Inventory & Sales Logbook',
         'settings': 'System Settings & Configuration'
       };
       if (headerTitle && titles[tabId]) headerTitle.textContent = titles[tabId];
 
-      if (tabId === 'dashboard') updateDashboard();
+      try { sessionStorage.setItem('mapo_active_tab', tabId); } catch (e) {}
       if (tabId === 'forecast') renderForecastPage();
     }
 
     window.onload = function() {
       buildLogbookUI();
+      restoreChat();
       updateClock();
       setInterval(updateClock, 1000);
 
@@ -1211,8 +1498,10 @@
 
       fetchBackendLogs().then(() => {
         loadLogForDate();
-        updateDashboard();
         renderForecastPage();
+        let savedTab = null;
+        try { savedTab = sessionStorage.getItem('mapo_active_tab'); } catch (e) {}
+        if (savedTab && savedTab !== 'dashboard' && document.getElementById('page-' + savedTab)) switchTab(savedTab);
       });
     };
   </script>

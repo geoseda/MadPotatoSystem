@@ -1,5 +1,7 @@
 import os
 import re
+import threading
+from datetime import datetime, timedelta
 import joblib
 import pandas as pd
 from flask import Flask, render_template, request, jsonify
@@ -77,6 +79,87 @@ def detect_specific_items(query_lower):
                 matched_codes.append(code)
             temp_query = temp_query.replace(kw, "")
     return matched_codes
+
+# ----------------------------------------------------
+# FLEXIBLE DATE UNDERSTANDING
+# Understands: 2026-10-16 | 10/16/2026 | October 16 | Oct 16, 2026 |
+#              16 October | 16th of Oct 2026 | yesterday
+# ----------------------------------------------------
+MONTHS = {
+    "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+    "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+    "aug": 8, "august": 8, "sep": 9, "sept": 9, "september": 9,
+    "oct": 10, "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12
+}
+_MONTH_RX = r"(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)"
+
+def _safe_date(year, month, day):
+    try:
+        return datetime(int(year), int(month), int(day)).strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+def _pick_year_for(month, day):
+    """No year typed: prefer the year where that date exists in the logbook, else this year."""
+    this_year = datetime.now().year
+    years = [this_year]
+    if logbook_db:
+        last_year = int(max(logbook_db.keys())[:4])
+        if last_year not in years:
+            years.append(last_year)
+    for y in years:
+        d = _safe_date(y, month, day)
+        if d and d in logbook_db:
+            return y
+    return this_year
+
+def extract_date(query_lower):
+    """Returns (YYYY-MM-DD or None, the exact text that was matched or None)."""
+    # 1) ISO: 2026-10-16
+    m = re.search(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", query_lower)
+    if m:
+        d = _safe_date(m.group(1), m.group(2), m.group(3))
+        if d:
+            return d, m.group(0)
+
+    # 2) Slashes: 10/16/2026 (month first; day first only if first number > 12)
+    m = re.search(r"\b(\d{1,2})/(\d{1,2})/(\d{4}|\d{2})\b", query_lower)
+    if m:
+        a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if y < 100:
+            y += 2000
+        month, day = (b, a) if a > 12 else (a, b)
+        d = _safe_date(y, month, day)
+        if d:
+            return d, m.group(0)
+
+    # 3) "October 16", "Oct 16th, 2026"
+    m = re.search(_MONTH_RX + r"\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b", query_lower)
+    if m:
+        month, day = MONTHS[m.group(1)], int(m.group(2))
+        year = int(m.group(3)) if m.group(3) else _pick_year_for(month, day)
+        d = _safe_date(year, month, day)
+        if d:
+            return d, m.group(0)
+
+    # 4) "16 October", "16th of Oct 2026"
+    m = re.search(r"\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?" + _MONTH_RX + r"\b\.?(?:,?\s+(\d{4}))?", query_lower)
+    if m:
+        day, month = int(m.group(1)), MONTHS[m.group(2)]
+        year = int(m.group(3)) if m.group(3) else _pick_year_for(month, day)
+        d = _safe_date(year, month, day)
+        if d:
+            return d, m.group(0)
+
+    # 5) Relative: yesterday
+    m = re.search(r"\byesterday\b", query_lower)
+    if m:
+        return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"), m.group(0)
+
+    return None, None
+
+def pretty_date(date_str):
+    return datetime.strptime(date_str, "%Y-%m-%d").strftime("%A, %B %d, %Y")
 
 def load_nlp_model():
     global nlp_model_pipeline
@@ -302,13 +385,111 @@ def chat_assistant():
     query_lower = user_query.lower()
 
     if not user_query:
-        return jsonify({"reply": "Please enter a question regarding inventory, sales, or business benchmarks."})
+        return jsonify({"reply": "Please enter a question regarding inventory, sales, or business benchmarks.", "is_stock_updated": False})
 
-    date_match = re.search(r'\d{4}-\d{2}-\d{2}', user_query)
-    target_date = date_match.group(0) if date_match else None
+    target_date, date_span = extract_date(query_lower)
+    query_no_date = query_lower.replace(date_span, " ") if date_span else query_lower
+    target_items = detect_specific_items(query_no_date)
 
-    target_items = detect_specific_items(query_lower)
+    # ----------------------------------------------------
+    # BROAD MATCH FOR ADD / REMOVE STOCK COMMANDS
+    # ----------------------------------------------------
+    # Strip the date first so "2026-10-16" is never mistaken for a quantity,
+    # then require: <action word> [up to 2 filler words] <number>
+    # e.g. "add 50 cups for medio", "remove 20 pcs of grande", "restock 30 fries"
+    action_regex = re.compile(
+        r'\b(add|added|restock|plus|stock in|remove|removed|deduct|subtract|reduce|minus|take away|use)\b'
+        r'\s*(?:[a-z]+\s+){0,2}?(\d+)\b'
+    )
+    action_match = action_regex.search(query_no_date)
 
+    is_add_action = False
+    is_remove_action = False
+    quantity = None
+    if action_match:
+        action_word = action_match.group(1)
+        quantity = int(action_match.group(2))
+        if action_word in ("add", "added", "restock", "plus", "stock in"):
+            is_add_action = True
+        else:
+            is_remove_action = True
+
+    if (is_add_action or is_remove_action) and quantity is not None and not target_items:
+        return jsonify({
+            "reply": "🤔 I understood you want to " + ("add" if is_add_action else "remove") +
+                     f" {quantity} units, but I couldn't tell which item. "
+                     "Try: 'add 50 cups of medio', 'remove 20 grande', or 'restock 30 fries'.",
+            "is_stock_updated": False
+        })
+
+    if (is_add_action or is_remove_action) and target_items and quantity is not None:
+        query_date = target_date or (list(sorted(logbook_db.keys()))[-1] if logbook_db else None)
+        
+        if not query_date or query_date not in logbook_db:
+            return jsonify({"reply": f"Sorry, could not find a valid date log for {query_date} to update stock.", "is_stock_updated": False})
+
+        log_entry = logbook_db[query_date]
+        top_data = log_entry.get("top", {})
+        bottom_data = log_entry.get("bottom", {})
+
+        reply_lines = []
+
+        for code in target_items:
+            full_name = ITEM_NAMES.get(code, code)
+            
+            t_item = top_data.get(code, {"starting": 0.0, "end": 0.0, "usage": 0.0})
+            b_item = bottom_data.get(code, {"opening": "", "stocks": 0.0, "closing": 0.0})
+
+            current_end = float(t_item.get("end", 0.0))
+            current_stocks = float(b_item.get("stocks", 0.0))
+
+            if is_add_action:
+                new_end = current_end + quantity
+                new_stocks = current_stocks + quantity
+                reply_lines.append(
+                    f"✅ <b>Stock added!</b> {full_name}<br>"
+                    f"• Added: <b>+{quantity}</b> units<br>"
+                    f"• Remaining stock on {query_date}: {int(round(current_end))} → <b>{int(round(new_end))}</b>"
+                )
+            else:
+                new_end = max(0.0, current_end - quantity)
+                new_stocks = max(0.0, current_stocks - quantity)
+                note = ""
+                if quantity > current_end:
+                    note = f"<br>⚠️ Only {int(round(current_end))} were in stock, so it was set to 0."
+                reply_lines.append(
+                    f"✅ <b>Stock removed!</b> {full_name}<br>"
+                    f"• Removed: <b>-{quantity}</b> units<br>"
+                    f"• Remaining stock on {query_date}: {int(round(current_end))} → <b>{int(round(new_end))}</b>"
+                    f"{note}"
+                )
+
+            t_item["end"] = new_end
+            b_item["stocks"] = new_stocks
+
+            top_data[code] = t_item
+            bottom_data[code] = b_item
+
+        logbook_db[query_date]["top"] = top_data
+        logbook_db[query_date]["bottom"] = bottom_data
+
+        # Save the CSV shortly AFTER the reply is sent, so file watchers (e.g. Live Server)
+        # can't interrupt the response before the chatbot confirmation reaches the browser.
+        def _delayed_save():
+            try:
+                save_logbook_to_csv()
+            except Exception as e:
+                print(f"CSV sync error: {e}")
+        threading.Timer(1.5, _delayed_save).start()
+
+        return jsonify({
+            "reply": "<br><br>".join(reply_lines),
+            "is_stock_updated": True
+        })
+
+    # ----------------------------------------------------
+    # INTENT & GENERAL CHAT
+    # ----------------------------------------------------
     recognized_keywords = [
         "sales", "revenue", "earn", "earned", "make", "made", "income",
         "stock", "stocks", "inventory", "remaining", "restock", "low", "need", "order",
@@ -319,7 +500,8 @@ def chat_assistant():
 
     if not target_date and not has_recognized_keyword and not target_items:
         return jsonify({
-            "reply": f"Sorry, I couldn't recognize your query '{user_query}'. Please ask a question about daily sales (e.g., 'sales on 2026-10-16'), inventory stocks (e.g., 'remaining stock for Medio'), AI forecasts, or business benchmarks."
+            "reply": f"Sorry, I couldn't recognize your query '{user_query}'. Please try prompts like 'add 50 cups of medio', 'remove 50 pcs of grande', or ask 'what is the sales for October 16?'.",
+            "is_stock_updated": False
         })
 
     predicted_intent = "general"
@@ -329,38 +511,69 @@ def chat_assistant():
         except Exception:
             pass
 
-    if target_items or any(k in query_lower for k in ["stock", "inventory", "remaining", "restock", "low", "need"]):
-        predicted_intent = "inventory_stocks"
-    elif ("sales" in query_lower or "revenue" in query_lower or "earn" in query_lower or "made" in query_lower) and target_date:
+    sales_words = ["sales", "sale", "revenue", "earn", "made", "make", "income"]
+    asks_sales = any(re.search(r"\b" + w, query_lower) for w in sales_words)
+
+    if asks_sales and target_date and not target_items:
         predicted_intent = "date_sales"
+    elif target_items or any(k in query_lower for k in ["stock", "inventory", "remaining", "restock", "low", "need"]):
+        predicted_intent = "inventory_stocks"
 
     # 1. DATE-SPECIFIC SALES INTENT
-    if predicted_intent == "date_sales" or (target_date and any(k in query_lower for k in ["sales", "revenue", "earn", "made"])):
+    if predicted_intent == "date_sales":
         query_date = target_date
-        if query_date in logbook_db:
+        note = ""
+        if not query_date:
+            # "sales for this day" with no date -> use the latest logged day
+            if logbook_db:
+                query_date = sorted(logbook_db.keys())[-1]
+                note = "<br><i>(No date given, so I used your latest logged day.)</i>"
+            else:
+                return jsonify({"reply": "Which date? Try: 'sales for October 16' or 'sales on 2026-10-16'.", "is_stock_updated": False})
+
+        if query_date in logbook_db and logbook_db[query_date].get("sales", 0) > 0:
             sales_val = logbook_db[query_date].get("sales", 0)
             status_text, _ = evaluate_sales_performance(sales_val)
             reply = (
-                f"💰 <b>Sales Report for {query_date}:</b><br>"
-                f"• Total Revenue: ₱{sales_val:,.2f}<br>"
-                f"• Performance: {status_text}"
+                f"💰 <b>Sales Report for {pretty_date(query_date)}:</b><br>"
+                f"• Total Revenue: <b>₱{sales_val:,.2f}</b><br>"
+                f"• Performance: {status_text}{note}"
+            )
+        elif query_date in logbook_db:
+            reply = (
+                f"📒 {pretty_date(query_date)} is in the logbook, but no sales amount was recorded for it yet."
             )
         else:
-            reply = f"Sorry, there is no sales information recorded for the date {query_date} in our dataset."
-        return jsonify({"reply": reply})
+            reply = f"Sorry, there is no sales record for {pretty_date(query_date)} in the logbook."
+            # Future date? Offer a Prophet forecast instead.
+            try:
+                last_date = sorted(logbook_db.keys())[-1] if logbook_db else None
+                if last_date and query_date > last_date:
+                    fc = fit_prophet_model(periods=90)
+                    if fc is not None:
+                        row = fc[fc["ds"] == pd.Timestamp(query_date)]
+                        if not row.empty:
+                            pred = max(0, int(round(row.iloc[0]["yhat"])))
+                            status_text, _ = evaluate_sales_performance(pred)
+                            reply = (
+                                f"🔮 No recorded sales yet for {pretty_date(query_date)}, "
+                                f"but the Meta Prophet forecast is <b>₱{pred:,}</b>.<br>"
+                                f"• Status: {status_text}"
+                            )
+            except Exception as e:
+                print(f"Forecast lookup error: {e}")
+        return jsonify({"reply": reply, "is_stock_updated": False})
 
     # 2. ITEM-SPECIFIC OR OVERALL INVENTORY INTENT
     if predicted_intent == "inventory_stocks":
         query_date = target_date or (list(sorted(logbook_db.keys()))[-1] if logbook_db else None)
         
         if not query_date or query_date not in logbook_db:
-            return jsonify({"reply": f"Sorry, there is no inventory stock record found for the date {query_date}."})
+            return jsonify({"reply": f"Sorry, there is no inventory stock record found for the date {query_date}.", "is_stock_updated": False})
 
         log_entry = logbook_db[query_date]
         top_data = log_entry.get("top", {})
-        bottom_data = log_entry.get("bottom", {})
 
-        # Item-specific query pulled from END column (Ending_Stock)
         if target_items:
             reply = f"📦 Inventory Report for {query_date}:<br><br>"
             for code in target_items:
@@ -368,9 +581,8 @@ def chat_assistant():
                 end_qty = int(round(top_data.get(code, {}).get("end", 0)))
                 reply += f"• {full_name}:<br>Stocks: {end_qty} cups<br><br>"
 
-            return jsonify({"reply": reply})
+            return jsonify({"reply": reply, "is_stock_updated": False})
 
-        # Restock alert
         is_restock_query = any(k in query_lower for k in ["restock", "low", "need", "order"])
         if is_restock_query:
             reply = f"🚨 Restock Alert for {query_date}:<br><br>"
@@ -388,21 +600,20 @@ def chat_assistant():
             else:
                 reply += "All item stocks are currently healthy.<br>"
 
-            return jsonify({"reply": reply})
+            return jsonify({"reply": reply, "is_stock_updated": False})
 
-        # Overall Inventory Summary
         reply = f"📦 Inventory Report for {query_date}:<br>"
         for code, full_name in ITEM_NAMES.items():
             if code in top_data:
                 end_qty = int(round(top_data[code].get("end", 0)))
                 reply += f"• {full_name}: {end_qty} cups<br>"
 
-        return jsonify({"reply": reply})
+        return jsonify({"reply": reply, "is_stock_updated": False})
 
     # 3. FORECAST & BUSINESS INTENTS
     forecast = fit_prophet_model(periods=30)
     if forecast is None:
-        return jsonify({"reply": "Business Assistant: Please record sales in the logbook to enable analytics."})
+        return jsonify({"reply": "Business Assistant: Please record sales in the logbook to enable analytics.", "is_stock_updated": False})
 
     future_30 = forecast.tail(30)
     tomorrow_val = max(0, int(round(future_30.iloc[0]["yhat"])))
@@ -428,13 +639,14 @@ def chat_assistant():
         )
     else:
         reply = (
-            f"🤖 Mad Potato Business & Inventory Assistant:<br>"
+            f"🤖 MAPO ASSISTANT:<br>"
             f"• Tomorrow's Forecast: ₱{tomorrow_val:,}<br>"
             f"• 7-Day Total Forecast: ₱{next_week_val:,}<br>"
-            f"You can ask me about stock for specific items (e.g. 'stock for Medio'), daily sales, or forecasts!"
+            f"You can ask me to modify stocks directly (e.g., 'add 50 cups of medio', 'remove 50 pcs of grande')!"
         )
 
-    return jsonify({"reply": reply})
+    return jsonify({"reply": reply, "is_stock_updated": False})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # use_reloader=False: stops Flask from restarting the server when files change
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
