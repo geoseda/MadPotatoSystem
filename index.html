@@ -1,1059 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mad Potato Management System</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Inter:wght@600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-      --mp-green-700: #15803d;
-      --mp-green-800: #166534;
-      --mp-green-900: #104c27;
-      --mp-green-light: #f0fdf4;
-      --mp-green-glow: rgba(21, 128, 61, 0.25);
-      
-      --mp-yellow-500: #facc15;
-      --mp-yellow-400: #fde047;
-      --mp-yellow-300: #fef08a;
-      --mp-yellow-bg: #f7f5e9;
-      --mp-yellow-card: #fffdf4;
-      --mp-yellow-border: #eee6c6;
-      
-      --surface-card: #fffdf4;
-      --surface-inner: #fffef7;
-      
-      --text-main: #0f172a;
-      --text-muted: #475569;
-      --border-color: #e2e8f0;
-      
-      --sidebar-width: 274px;
-      --sidebar-collapsed-width: 84px;
-      
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 22px;
-      
-      --shadow-soft: 0 8px 28px rgba(15,23,42,.055);
-      --shadow-hover: 0 14px 34px rgba(15,23,42,.10);
-      --transition: all 0.22s ease;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'DM Sans', 'Segoe UI', Roboto, sans-serif;
-    }
-
-    h1, h2, h3, .card-title, .brand-title {
-      font-family: 'Manrope', 'DM Sans', sans-serif;
-      color: var(--text-main);
-    }
-
-    body {
-      background-color: var(--mp-yellow-bg);
-      color: var(--text-main);
-      display: flex;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--mp-green-900);
-      padding: 24px 15px;
-      display: flex;
-      flex-direction: column;
-      color: #ffffff;
-      box-shadow: 8px 0 30px rgba(16,76,39,.10);
-      flex-shrink: 0;
-      transition: var(--transition);
-      z-index: 100;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-    }
-
-    body.sidebar-collapsed .sidebar {
-      width: var(--sidebar-collapsed-width);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 0 5px 22px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-      margin-bottom: 22px;
-    }
-
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-      flex: 1;
-    }
-
-    .brand-image-wrapper {
-      background: transparent;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      width: 100%;
-      max-width: 200px;
-      height: 60px;
-      filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.9));
-    }
-
-    .brand-image {
-      width: 200%;
-      height: 300%;
-      object-fit: contain;
-      display: block;
-    }
-
-    body.sidebar-collapsed .brand-image-wrapper {
-      max-width: 44px;
-      height: 44px;
-      padding: 4px;
-    }
-
-    .hamburger-btn {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #fff;
-      width: 38px;
-      height: 38px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-      flex-shrink: 0;
-    }
-
-    .hamburger-btn:hover {
-      background: rgba(255, 255, 255, 0.28);
-      transform: scale(1.05);
-    }
-
-    .hamburger-icon {
-      width: 18px;
-      height: 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .hamburger-icon span {
-      display: block;
-      height: 2px;
-      width: 100%;
-      background-color: #fff;
-      border-radius: 2px;
-    }
-
-    .nav-menu {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .nav-item button {
-      width: 100%;
-      background: transparent;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-height: 50px;
-      padding: 12px 16px;
-      color: #ffffff;
-      font-family: 'Inter', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      text-align: left;
-      cursor: pointer;
-      border-radius: 12px;
-      transition: var(--transition);
-      white-space: nowrap;
-    }
-
-    .nav-item button .nav-icon {
-      font-size: 20px;
-      width: 26px;
-      font-weight: 800;
-      text-align: center;
-      flex-shrink: 0;
-      opacity: 0.95;
-    }
-
-    .nav-item.active button {
-      background: var(--mp-yellow-400);
-      color: #0a190f;
-      font-weight: 800;
-      box-shadow: 0 5px 16px rgba(0, 0, 0, 0.15);
-    }
-
-    .nav-item.active button .nav-icon {
-      opacity: 1;
-      color: #0a190f;
-    }
-
-    .nav-item button:hover:not(.active) {
-      background-color: rgba(255, 255, 255, 0.16);
-      color: #ffffff;
-      transform: translateX(3px);
-    }
-
-    body.sidebar-collapsed .nav-text {
-      display: none;
-    }
-
-    .main-content {
-      flex: 1;
-      padding: 28px clamp(16px, 3vw, 42px);
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      overflow-y: auto;
-      max-width: 100%;
-    }
-
-    .header {
-      background: #fffdf4;
-      border-radius: 18px;
-      padding: 21px 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid #f0e4a2;
-      flex-wrap: wrap;
-      gap: 18px;
-    }
-
-    .header-title h1 {
-      font-size: clamp(18px, 1.6vw, 24px);
-      font-weight: 800;
-      color: var(--text-main);
-      line-height: 1.35;
-      letter-spacing: -0.55px;
-    }
-
-    .header-badges {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .clock-badge {
-      background-color: rgba(255, 255, 255, 0.9);
-      color: var(--text-main);
-      padding: 9px 12px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .branch-badge {
-      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
-      color: #fff;
-      padding: 9px 12px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-      box-shadow: 0 2px 8px var(--mp-green-glow);
-    }
-
-    .sync-badge {
-      font-size: 11px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      background-color: #e2e8f0;
-      color: var(--text-main);
-    }
-
-    .sync-online {
-      background-color: #dcfce7;
-      color: #15803d;
-      border: 1px solid #bbf7d0;
-    }
-
-    .sync-busy {
-      background-color: #fef3c7;
-      color: #b45309;
-      border: 1px solid #fde68a;
-    }
-
-    .page-view {
-      display: none;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .page-view.active {
-      display: flex;
-    }
-
-    .grid-1 {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-
-    .card {
-      background: var(--surface-card);
-      border-radius: 20px;
-      padding: clamp(18px, 2vw, 28px);
-      box-shadow: var(--shadow-soft);
-      border: 1px solid #eee6c6;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      transition: var(--transition);
-    }
-
-    .card:hover {
-      box-shadow: var(--shadow-hover);
-    }
-
-    .card-title {
-      font-size: 17px;
-      font-weight: 800;
-      color: var(--text-main);
-      border-bottom: 1px solid #e9e5d6;
-      padding-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .summary-box {
-      background-color: var(--mp-yellow-card);
-      border: 1px solid #f0e4a2;
-      border-left: 4px solid var(--mp-green-900);
-      padding: 18px 20px;
-      border-radius: 12px;
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--text-main);
-      line-height: 1.6;
-    }
-
-    .summary-header {
-      font-weight: 800;
-      color: var(--mp-green-900);
-      margin-bottom: 6px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .assistant-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(135deg, var(--mp-yellow-300) 0%, var(--mp-yellow-400) 100%);
-      padding: 15px 18px;
-      border-radius: 14px;
-      border-bottom: 1px solid rgba(250, 204, 21, 0.5);
-    }
-
-    .assistant-profile {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .avatar-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--mp-green-900);
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: bold;
-      box-shadow: 0 2px 6px var(--mp-green-glow);
-    }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      background-color: #22c55e;
-      border-radius: 50%;
-      display: inline-block;
-      box-shadow: 0 0 8px #22c55e;
-    }
-
-    .chat-container {
-      height: min(60vh, 570px);
-      min-height: 420px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background: #fbf8e9;
-      border: 1px solid #eee6c6;
-      border-radius: 16px;
-      padding: 16px;
-      gap: 14px;
-      box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
-    }
-
-    .chat-messages {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      overflow-y: auto;
-      padding-right: 8px;
-      flex: 1;
-    }
-
-    .message {
-      padding: 13px 16px;
-      border-radius: 15px;
-      font-size: 13.5px;
-      font-weight: 500;
-      max-width: 78%;
-      line-height: 1.65;
-      box-shadow: var(--shadow-soft);
-      animation: fadeIn 0.25s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .user-msg {
-      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
-      color: #ffffff;
-      align-self: flex-end;
-      border-bottom-right-radius: 5px;
-      font-weight: 600;
-    }
-
-    .bot-msg {
-      background: #ffffff;
-      border: 1px solid #eee6c6;
-      color: var(--text-main);
-      align-self: flex-start;
-      border-bottom-left-radius: 5px;
-      font-weight: 600;
-    }
-
-    .typing-cursor::after {
-      content: '▋';
-      animation: blink 0.8s infinite;
-      color: var(--mp-green-900);
-      margin-left: 2px;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    .chat-chips {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 4px 2px 6px 2px;
-    }
-
-    .chip-btn {
-      background: #ffffff;
-      border: 1px solid #eee6c6;
-      border-radius: 10px;
-      padding: 9px 13px;
-      font-size: 11.5px;
-      font-weight: 700;
-      color: var(--text-main);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: var(--transition);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-    }
-
-    .chip-btn:hover {
-      background-color: var(--mp-green-900);
-      border-color: var(--mp-green-900);
-      color: #ffffff;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px var(--mp-green-glow);
-    }
-
-    .chat-input-area {
-      display: flex;
-      gap: 8px;
-      background: #ffffff;
-      padding: 7px;
-      border-radius: 13px;
-      border: 1.5px solid #eee6c6;
-      box-shadow: var(--shadow-soft);
-      transition: var(--transition);
-    }
-
-    .chat-input-area:focus-within {
-      border-color: var(--mp-green-900);
-      box-shadow: 0 0 0 4px var(--mp-green-glow);
-    }
-
-    .chat-input {
-      flex: 1;
-      border: none;
-      padding: 11px;
-      font-size: 13.5px;
-      font-weight: 600;
-      outline: none;
-      background: transparent;
-      color: var(--text-main);
-    }
-
-    .send-btn, .btn-action {
-      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-900) 100%);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      min-height: 40px;
-      padding: 10px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 12px;
-      transition: var(--transition);
-      box-shadow: 0 4px 10px rgba(21,128,61,.13);
-    }
-
-    .send-btn:hover, .btn-action:hover {
-      opacity: 0.95;
-      transform: translateY(-1px);
-    }
-
-    .benchmark-legend {
-      display: flex;
-      gap: 14px;
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 14px 16px;
-      background-color: var(--surface-inner);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      flex-wrap: wrap;
-      color: var(--text-main);
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-    }
-
-    .chart-container {
-      height: clamp(270px, 38vh, 390px);
-      min-height: 300px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-around;
-      padding: 36px 14px 15px;
-      background: var(--surface-inner);
-      border: 1px solid var(--border-color);
-      border-radius: 15px;
-      overflow-x: auto;
-      gap: 8px;
-    }
-
-    .chart-bar-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      height: 100%;
-      justify-content: flex-end;
-      flex: 1;
-      min-width: 36px;
-      max-width: 65px;
-    }
-
-    .chart-bar {
-      width: 80%;
-      min-height: 3px;
-      border-radius: 7px 7px 2px 2px;
-      transition: height 0.5s ease;
-      position: relative;
-      box-shadow: 0 3px 8px rgba(15,23,42,.08);
-    }
-
-    .bar-deficit { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }
-    .bar-bad { background: linear-gradient(180deg, #f97316 0%, #ea580c 100%); }
-    .bar-below-avg { background: linear-gradient(180deg, #eab308 0%, #ca8a04 100%); }
-    .bar-acceptable { background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); }
-    .bar-successful { background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%); }
-
-    .chart-bar-value {
-      position: absolute;
-      top: -22px;
-      font-size: 10px;
-      font-weight: 800;
-      width: 100%;
-      text-align: center;
-      color: var(--text-main);
-      white-space: nowrap;
-    }
-
-    .chart-label {
-      font-size: 10px;
-      color: var(--text-main);
-      font-weight: 700;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .logbook-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: var(--surface-inner);
-      padding: 15px;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 14px;
-    }
-
-    .date-picker-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .date-input, .select-control {
-      min-height: 40px;
-      border-radius: 10px;
-      padding: 9px 12px;
-      border: 1px solid var(--border-color);
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-      outline: none;
-      background-color: #ffffff;
-      transition: var(--transition);
-    }
-
-    .date-input:focus, .select-control:focus {
-      border-color: var(--mp-green-900);
-      box-shadow: 0 0 0 3px var(--mp-green-glow);
-    }
-
-    .notebook-container {
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .logbook-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 13px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      background: white;
-    }
-
-    .logbook-table th {
-      background: linear-gradient(135deg, var(--mp-green-700) 0%, var(--mp-green-800) 100%);
-      color: #fff;
-      text-align: center;
-      padding: 13px 10px;
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-    }
-
-    .logbook-table td {
-      padding: 7px;
-      border-bottom: 1px solid var(--border-color);
-      border-right: 1px solid var(--border-color);
-      text-align: center;
-      background-color: #ffffff;
-    }
-
-    .logbook-table td:last-child {
-      border-right: none;
-    }
-
-    .item-label {
-      font-weight: 800;
-      min-width: 72px;
-      background-color: var(--surface-inner) !important;
-      color: var(--text-main);
-    }
-
-    .grid-input {
-      width: 100%;
-      min-height: 37px;
-      padding: 8px 7px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      text-align: center;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-      transition: var(--transition);
-    }
-
-    .grid-input:focus {
-      border-color: var(--mp-green-900);
-      outline: none;
-      background-color: var(--mp-green-light);
-      box-shadow: 0 0 0 3px var(--mp-green-glow);
-    }
-
-    .sales-box-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-top: 12px;
-      background-color: var(--mp-yellow-card);
-      padding: 18px;
-      border-radius: 14px;
-      border: 1px solid #f0e4a2;
-      flex-wrap: wrap;
-    }
-
-    #page-settings .card > div:last-child {
-      gap: 22px !important;
-    }
-
-    #page-settings .card > div:last-child > div {
-      background: #fffef7;
-      border: 1px solid #eee6c6;
-      padding: 18px;
-      border-radius: 14px;
-    }
-
-    #script-url-input {
-      max-width: 100% !important;
-      min-height: 44px;
-      text-align: left;
-      padding: 10px;
-    }
-
-    #log-status {
-      line-height: 1.5;
-      font-weight: 700;
-      color: var(--mp-green-900);
-    }
-
-    ::selection {
-      background: var(--mp-yellow-400);
-      color: #14251a;
-    }
-
-    @media (min-width: 1200px) {
-      .main-content { max-width: 1800px; margin: 0 auto; width: 100%; }
-      .notebook-container { max-width: 1000px; }
-    }
-
-    @media (max-width: 900px) {
-      .main-content { padding: 18px 14px; gap: 16px; }
-      .header { padding: 17px; }
-      .header-badges { width: 100%; }
-      .card { padding: 17px; }
-      .chat-container { height: 480px; }
-    }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        position: fixed;
-        left: -100%;
-        top: 0;
-        height: 100dvh;
-        width: min(290px, 85vw);
-        z-index: 1000;
-      }
-      body.sidebar-open .sidebar { left: 0; }
-      body.sidebar-collapsed .sidebar { width: min(290px, 85vw); }
-      body.sidebar-collapsed .nav-text { display: inline; opacity: 1; }
-      .brand-image-wrapper { max-width: 48px; height: 48px; }
-      .header-title h1 { font-size: 18px; }
-      .header-badges { align-items: flex-start; }
-      .chat-container { min-height: 400px; height: 58vh; }
-      .message { max-width: 92%; }
-      .logbook-toolbar { align-items: flex-start; }
-      .date-picker-group { flex-wrap: wrap; }
-      .logbook-table { font-size: 11px; }
-      .logbook-table th { padding: 10px 4px; font-size: 9px; }
-      .logbook-table td { padding: 4px; }
-      .grid-input { font-size: 12px; padding: 7px 3px; }
-      .item-label { width: 58px; min-width: 58px; }
-      .sales-box-container { align-items: flex-start; }
-      #page-logbook .card-title > div { flex-wrap: wrap; }
-      .btn-action { padding: 9px 11px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mad Potato Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mp-green-700:#15803d;--mp-green-800:#166534;--mp-green-900:#104c27;--mp-green-light:#f0fdf4;--mp-green-glow:rgba(21,128,61,.25);
+  --mp-yellow-500:#facc15;--mp-yellow-400:#fde047;--mp-yellow-300:#fef08a;--mp-yellow-bg:#f7f5e9;--mp-yellow-card:#fffdf4;--mp-yellow-border:#eee6c6;
+  --surface-card:#fffdf4;--surface-inner:#fffef7;--text-main:#0f172a;--text-muted:#475569;--border-color:#e2e8f0;
+  --sidebar-width:264px;--sidebar-collapsed-width:80px;
+  --font-display:'Bricolage Grotesque','Figtree',system-ui,sans-serif;--font-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font-body);font-size:15px;line-height:1.5;background:var(--mp-yellow-bg);color:var(--text-main);display:flex;min-height:100vh;overflow-x:hidden;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:-.02em;line-height:1.15}
+:focus-visible{outline:3px solid var(--mp-green-700);outline-offset:2px}
+::selection{background:var(--mp-yellow-400);color:#14251a}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-width);background:var(--mp-green-900);color:#fff;padding:20px 14px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;height:100vh;flex-shrink:0;z-index:100;transition:width .25s var(--ease)}
+body.sidebar-collapsed .sidebar{width:var(--sidebar-collapsed-width)}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 6px;min-height:48px}
+.brand-mark{width:44px;height:44px;border-radius:12px;background:var(--mp-yellow-card);flex-shrink:0;display:grid;place-items:center;overflow:hidden;font-family:var(--font-display);font-weight:700;color:var(--mp-green-900)}
+.brand-mark img{width:100%;height:100%;object-fit:contain;padding:3px}
+.brand-text{display:flex;flex-direction:column;white-space:nowrap;overflow:hidden}
+.brand-text strong{font-family:var(--font-display);font-size:19px;letter-spacing:-.02em}
+.brand-text span{font-size:12.5px;color:rgba(255,255,255,.72)}
+body.sidebar-collapsed .brand-text,body.sidebar-collapsed .nav-text,body.sidebar-collapsed .collapse-btn .nav-text{display:none}
+.nav-menu{list-style:none;display:flex;flex-direction:column;gap:4px}
+.nav-item{position:relative}
+.nav-item button,.collapse-btn{width:100%;display:flex;align-items:center;gap:14px;min-height:46px;padding:10px 14px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.88);font-size:15px;font-weight:600;text-align:left;white-space:nowrap;transition:background .15s,color .15s}
+.nav-item button:hover,.collapse-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-item button[aria-current="page"]{background:var(--mp-yellow-400);color:#0a190f;font-weight:700}
+.nav-icon{width:22px;height:22px;flex-shrink:0}
+.nav-icon *{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-foot{margin-top:auto;border-top:1px solid rgba(255,255,255,.16);padding-top:14px}
+.collapse-btn .nav-icon{transition:transform .25s var(--ease)}
+body.sidebar-collapsed .collapse-btn .nav-icon{transform:rotate(180deg)}
+body.sidebar-collapsed .nav-item button,body.sidebar-collapsed .collapse-btn{justify-content:center;padding:10px}
+body.sidebar-collapsed .nav-item:hover::after{content:attr(data-label);position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--text-main);color:#fff;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;white-space:nowrap;pointer-events:none;z-index:5}
+.scrim{display:none}
+
+/* Main */
+.main-content{flex:1;min-width:0;padding:28px clamp(16px,3vw,40px) 40px;display:flex;flex-direction:column;gap:24px;max-width:1360px;margin:0 auto;width:100%}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px 24px;flex-wrap:wrap}
+.menu-btn{display:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--mp-yellow-border);background:var(--surface-card);align-items:center;justify-content:center}
+.page-heading{flex:1;min-width:220px}
+.page-heading h1{font-size:clamp(26px,3vw,34px);font-weight:700}
+.page-heading p{color:var(--text-muted);margin-top:6px;max-width:60ch}
+.status-cluster{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clock,.sync-badge,.branch-badge{font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.clock{background:var(--surface-card);border:1px solid var(--mp-yellow-border);color:var(--text-muted)}
+.clock b{color:var(--text-main);font-weight:700}
+.sync-badge{background:#fff;border:1px solid var(--border-color);color:var(--text-muted)}
+.sync-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#94a3b8}
+.sync-online{background:#dcfce7;border-color:#bbf7d0;color:var(--mp-green-800)}
+.sync-online::before{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+.sync-busy{background:#fef3c7;border-color:#fde68a;color:#92400e}
+.sync-busy::before{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.branch-badge{background:var(--mp-green-900);color:#fff}
+
+.page-view{display:none;flex-direction:column;gap:20px}
+.page-view.active{display:flex;animation:swap .22s var(--ease)}
+@keyframes swap{from{opacity:0}}
+.panel{background:var(--surface-card);border:1px solid var(--mp-yellow-border);border-radius:18px;padding:clamp(18px,2vw,26px);box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px rgba(15,23,42,.04)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.panel-head h2{font-size:20px;font-weight:600}
+.panel-head p{color:var(--text-muted);font-size:14px;margin-top:2px}
+.muted{color:var(--text-muted)}
+
+/* Buttons & inputs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 18px;border-radius:11px;border:1px solid transparent;background:var(--mp-green-800);color:#fff;font-weight:600;font-size:14px;transition:background .15s,transform .1s}
+.btn:hover{background:var(--mp-green-900)}.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--text-main);border-color:var(--mp-yellow-border)}
+.btn.ghost:hover{background:var(--mp-yellow-bg)}
+.btn.icon{width:42px;padding:0}
+.btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.field,.date-input{min-height:44px;width:100%;padding:9px 14px;border-radius:11px;border:1px solid #e0d9b5;background:#fff;font-size:15px;transition:border-color .15s,box-shadow .15s}
+.field:focus,.date-input:focus{outline:none;border-color:var(--mp-green-700);box-shadow:0 0 0 4px var(--mp-green-glow)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;color:var(--c,var(--text-muted));background:color-mix(in srgb,var(--c,#64748b) 13%,#fff)}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c,#64748b)}
+
+/* Dashboard */
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);padding:0}
+.kpi{padding:22px 26px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi+.kpi{border-left:1px solid var(--mp-yellow-border)}
+.kpi-label{font-size:14px;color:var(--text-muted);font-weight:500}
+.kpi-value{font-family:var(--font-display);font-size:clamp(28px,3vw,38px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:4px 0 6px}
+.kpi-note{font-size:13.5px;color:var(--text-muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:24px}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:20px;align-items:start}
+.side-stack{display:flex;flex-direction:column;gap:20px}
+.assistant-id{display:flex;align-items:center;gap:12px}
+.avatar-icon{width:40px;height:40px;border-radius:12px;background:var(--mp-green-900);color:var(--mp-yellow-400);display:grid;place-items:center}
+.avatar-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.assistant-id small{display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:13px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+.chat-container{display:flex;flex-direction:column;gap:12px;height:min(56vh,520px);min-height:380px}
+.chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:16px;background:#fbf8e9;border:1px solid var(--mp-yellow-border);border-radius:14px;scroll-behavior:smooth}
+.message{max-width:80%;padding:11px 15px;border-radius:16px;line-height:1.6;font-size:15px;animation:swap .2s}
+.bot-msg{background:#fff;border:1px solid var(--mp-yellow-border);border-bottom-left-radius:5px;align-self:flex-start}
+.user-msg{background:var(--mp-green-800);color:#fff;border-bottom-right-radius:5px;align-self:flex-end}
+.typing-cursor::after{content:'';display:inline-block;width:2px;height:1em;background:var(--mp-green-800);margin-left:2px;vertical-align:text-bottom;animation:blink .8s infinite}
+@keyframes blink{50%{opacity:0}}
+.chat-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.chip-btn{flex-shrink:0;padding:8px 14px;border-radius:999px;border:1px solid #e0d9b5;background:#fff;font-size:14px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+.chip-btn:hover{background:var(--mp-green-900);border-color:var(--mp-green-900);color:#fff}
+.chat-input-area{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #e0d9b5;border-radius:14px;padding:6px 6px 6px 16px;transition:border-color .15s,box-shadow .15s}
+.chat-input-area:focus-within{border-color:var(--mp-green-700);box-shadow:0 0 0 4px var(--mp-green-glow)}
+.chat-input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;min-height:40px}
+.stock-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.stock-row{display:grid;grid-template-columns:44px 1fr 40px;align-items:center;gap:12px;font-size:14px}
+.stock-row b{font-weight:700}.stock-row span:last-child{text-align:right;font-weight:600}
+.meter{height:8px;border-radius:99px;background:#efe9c8;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px;background:var(--mp-green-700);transition:width .5s var(--ease)}
+.spark{width:100%;height:88px;display:block}
+.spark-axis{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-muted);margin-top:6px}
+.empty{padding:28px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--text-muted)}
+.empty strong{color:var(--text-main);font-family:var(--font-display);font-size:18px}
+.empty p{max-width:44ch}
+
+/* Forecast */
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:13px;background:#f1ecd0}
+.seg button{border:0;background:transparent;padding:8px 16px;border-radius:10px;font-size:14px;font-weight:600;color:var(--text-muted);transition:background .15s,color .15s}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--mp-green-900);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);padding:0}
+.stat{padding:18px 22px;min-width:0}.stat+.stat{border-left:1px solid var(--mp-yellow-border)}
+.stat small{display:block;color:var(--text-muted);font-size:13.5px}
+.stat strong{display:block;font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-.02em;margin:2px 0}
+.stat span{font-size:13.5px;color:var(--text-muted)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.legend button{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid var(--mp-yellow-border);background:#fff;font-size:13.5px;transition:opacity .15s,border-color .15s}
+.legend button i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.legend button small{color:var(--text-muted);font-size:12.5px}
+.legend button[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff)}
+.legend .key{cursor:default;border-style:dashed}
+.chart-container{position:relative;background:var(--surface-inner);border:1px solid var(--mp-yellow-border);border-radius:14px;padding:8px 4px 0;min-height:300px}
+.chart-container.loading{background:linear-gradient(90deg,#f4efd2 25%,#fbf8e6 50%,#f4efd2 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+.chart-container svg{display:block;max-width:100%;overflow:visible}
+.chart-container .grid{stroke:#ece5c3;stroke-width:1}
+.chart-container .ax,.chart-container .ref,.chart-container .xl{font-size:12px;fill:var(--text-muted)}
+.chart-container .xl b{font-weight:700;fill:var(--text-main)}
+.chart-container .band{fill:rgba(22,163,74,.09)}
+.chart-container .floor{stroke:#ef4444;stroke-width:1;stroke-dasharray:4 4;opacity:.55}
+.chart-container .split{stroke:var(--mp-green-900);stroke-width:1;stroke-dasharray:3 4;opacity:.45}
+.bar-g{outline:none;transition:opacity .15s}
+.bar-g.dim{opacity:.18}
+.bar{transition:filter .15s}
+.proj{fill-opacity:.32;stroke-width:2}
+.anim .bar{transform-box:fill-box;transform-origin:bottom;animation:grow .5s var(--ease) var(--d) both}
+@keyframes grow{from{transform:scaleY(0)}}
+.bar-g.on .bar,.bar-g:focus-visible .bar{filter:brightness(.88)}
+.bar-g.on .hit,.bar-g:focus-visible .hit{fill:rgba(16,76,39,.06)}
+.hit{fill:transparent}
+.whisk{stroke:var(--text-main);stroke-width:1.5;opacity:.6;fill:none}
+.tip{position:absolute;pointer-events:none;transform:translate(-50%,calc(-100% - 10px));background:var(--mp-green-900);color:#fff;border-radius:11px;padding:10px 13px;font-size:13px;display:flex;flex-direction:column;gap:2px;min-width:150px;z-index:5;box-shadow:0 8px 24px rgba(15,23,42,.25)}
+.tip[hidden]{display:none}
+.tip b{font-weight:600;color:var(--mp-yellow-300)}.tip span{font-family:var(--font-display);font-size:20px;font-weight:700}.tip small{opacity:.8}
+.days{list-style:none;max-height:360px;overflow:auto;border:1px solid var(--mp-yellow-border);border-radius:14px;background:#fff}
+.days li{display:grid;grid-template-columns:1.1fr 1.4fr .8fr 1.2fr;gap:12px;align-items:center;padding:11px 18px;font-size:14px;border-bottom:1px solid #f3eed2}
+.days li:last-child{border:0}.days li:hover{background:var(--mp-yellow-card)}
+.days .chip{justify-self:start}.days .d-amt{font-weight:700;text-align:right}.days .d-rng{color:var(--text-muted);font-size:13.5px}
+
+/* Logbook */
+.log-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.date-nav{display:flex;align-items:center;gap:8px}
+.date-input{width:auto}
+#log-heading{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-.02em}
+.log-status{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:#f1f5f9;color:var(--text-muted)}
+.log-status::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.log-status[data-state="ok"]{background:#dcfce7;color:var(--mp-green-800)}
+.log-status[data-state="new"]{background:#fef3c7;color:#92400e}
+.log-status[data-state="busy"]{background:#e0f2fe;color:#075985}
+.notebook-container{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.log-block h3{font-size:17px;font-weight:600;margin-bottom:2px}
+.log-block>p{font-size:13.5px;color:var(--text-muted);margin-bottom:12px}
+.table-wrap{overflow-x:auto;border:1px solid var(--mp-yellow-border);border-radius:14px;background:#fff}
+.logbook-table{width:100%;border-collapse:collapse}
+.logbook-table th{background:#f6f2dc;color:var(--text-muted);font-size:13px;font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid var(--mp-yellow-border)}
+.logbook-table td{padding:4px 6px;border-bottom:1px solid #f3eed2}
+.logbook-table tr:last-child td{border-bottom:0}
+.logbook-table tbody tr:focus-within,.logbook-table tbody tr:hover{background:var(--mp-yellow-card)}
+.item-label{font-weight:700;padding-left:12px!important;width:64px}
+.grid-input{width:100%;min-height:42px;padding:8px 10px;border:1px solid transparent;border-radius:9px;background:transparent;font-size:15px;font-weight:500;text-align:right;transition:border-color .12s,background .12s,box-shadow .12s}
+.grid-input:hover{border-color:#e6dfbd}
+.grid-input:focus{outline:none;border-color:var(--mp-green-700);background:#fff;box-shadow:0 0 0 3px var(--mp-green-glow)}
+.grid-input.calc{background:#fff8c9;border-color:#f3e48a}
+.grid-input::placeholder{color:#b8b293}
+.hint{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--text-muted)}
+.hint i{width:14px;height:14px;border-radius:4px;background:#fff8c9;border:1px solid #f3e48a;flex-shrink:0}
+.savebar{position:sticky;bottom:16px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--mp-green-900);color:#fff;border-radius:16px;padding:12px 14px 12px 22px;box-shadow:0 10px 30px rgba(16,76,39,.3)}
+.savebar label{font-weight:600}
+.sales-field{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sales-field .field{width:170px;text-align:right;font-family:var(--font-display);font-size:20px;font-weight:700;min-height:46px}
+.savebar .btn{background:var(--mp-yellow-400);color:#0a190f;min-height:46px}.savebar .btn:hover{background:var(--mp-yellow-300)}
+
+/* Settings */
+.setting{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,1.6fr);gap:20px 40px;padding:22px 0;border-top:1px solid var(--mp-yellow-border)}
+.setting:first-of-type{border-top:0;padding-top:4px}
+.setting h3{font-size:17px;font-weight:600}.setting>div:first-child p{font-size:14px;color:var(--text-muted);margin-top:4px}
+.controls{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #f3eed2;font-size:14.5px}
+.kv:last-child{border:0}.kv span:first-child{color:var(--text-muted)}.kv code{font-size:13px;background:#f3eed2;padding:2px 8px;border-radius:6px;word-break:break-all}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.switch input{appearance:none;width:46px;height:28px;border-radius:99px;background:#d6cfa8;position:relative;transition:background .2s;flex-shrink:0;cursor:pointer}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s var(--ease)}
+.switch input:checked{background:var(--mp-green-700)}.switch input:checked::after{transform:translateX(18px)}
+.form-msg{font-size:13.5px;min-height:20px}.form-msg.err{color:#b91c1c}
+
+#toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;z-index:2000;pointer-events:none}
+.toast{background:var(--mp-green-900);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;font-size:14.5px;box-shadow:0 10px 30px rgba(15,23,42,.25);border-left:5px solid var(--mp-yellow-400);animation:toastIn .3s var(--ease);max-width:360px}
+.toast.error{background:#7f1d1d;border-left-color:#fca5a5}.toast.info{background:var(--text-main);border-left-color:#94a3b8}
+.toast.out{opacity:0;transform:translateY(8px);transition:.25s}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}}
+
+@media (max-width:1100px){.notebook-container{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(3){border-left:0}.stat:nth-child(n+3){border-top:1px solid var(--mp-yellow-border)}}
+@media (max-width:900px){.dash-grid{grid-template-columns:1fr}.setting{grid-template-columns:1fr;gap:12px}}
+@media (max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;height:100dvh;width:min(290px,85vw)!important;transform:translateX(-102%);transition:transform .28s var(--ease)}
+  body.sidebar-open .sidebar{transform:none}
+  body.sidebar-open .scrim{display:block;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:90}
+  body.sidebar-collapsed .brand-text,body.sidebar-collapsed .nav-text{display:flex}
+  body.sidebar-collapsed .nav-item button{justify-content:flex-start;padding:10px 14px}
+  .collapse-btn{display:none}.menu-btn{display:inline-flex}
+  .topbar{flex-wrap:wrap}.page-heading{order:2;flex-basis:100%}.status-cluster{order:1;margin-left:auto}.clock{display:none}.status-cluster{gap:6px;flex-wrap:nowrap}.sync-badge,.branch-badge{padding:6px 10px;font-size:12.5px}.topbar{align-items:center}
+  .kpis{grid-template-columns:1fr}.kpi+.kpi{border-left:0;border-top:1px solid var(--mp-yellow-border)}
+  .message{max-width:92%}.days li{grid-template-columns:1fr 1fr;row-gap:2px}.days .chip{justify-self:start}.days .d-amt{text-align:left}
+  .grid-input,.field,.date-input,.chat-input{font-size:16px}
+  .savebar{bottom:8px}.sales-field .field{width:140px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
 </head>
 <body>
+<div class="scrim" onclick="toggleSidebar()"></div>
 
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="brand-logo">
-        <div class="brand-image-wrapper">
-          <img class="brand-image" src="mplogo.jpg.png" alt="Mad Potato Logo">
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="brand">
+    <div class="brand-mark"><img src="mplogo.jpg.png" alt="Mad Potato logo" onerror="var p=this.parentNode;this.remove();p.textContent='MP'"></div>
+    <div class="brand-text"><strong>Mad Potato</strong><span>Management System</span></div>
+  </div>
+  <ul class="nav-menu">
+    <li class="nav-item" id="nav-dashboard" data-label="Dashboard"><button onclick="switchTab('dashboard')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="9" rx="2"/><rect x="13.5" y="3" width="7.5" height="5" rx="2"/><rect x="13.5" y="11" width="7.5" height="10" rx="2"/><rect x="3" y="15" width="7.5" height="6" rx="2"/></svg><span class="nav-text">Dashboard</span></button></li>
+    <li class="nav-item" id="nav-forecast" data-label="Sales forecast"><button onclick="switchTab('forecast')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg><span class="nav-text">Sales forecast</span></button></li>
+    <li class="nav-item" id="nav-logbook" data-label="Digitized logbook"><button onclick="switchTab('logbook')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v16H6.5A1.5 1.5 0 0 0 5 20.5z"/><path d="M5 20.5A1.5 1.5 0 0 0 6.5 22H19v-3"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></svg><span class="nav-text">Digitized logbook</span></button></li>
+    <li class="nav-item" id="nav-settings" data-label="Settings"><button onclick="switchTab('settings')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg><span class="nav-text">Settings</span></button></li>
+  </ul>
+  <div class="sidebar-foot">
+    <button class="collapse-btn" onclick="toggleSidebar()" aria-label="Collapse sidebar"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg><span class="nav-text">Collapse</span></button>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>
+    <div class="page-heading"><h1 id="page-header-title">Dashboard</h1><p id="page-header-sub"></p></div>
+    <div class="status-cluster">
+      <span id="realtime-clock" class="clock"></span>
+      <span id="sync-status" class="sync-badge sync-busy" role="status">Connecting...</span>
+      <span class="branch-badge">Teresa Branch</span>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page-view active">
+    <section class="panel kpis" aria-label="Key numbers">
+      <div class="kpi"><span class="kpi-label">Sales logged today</span><span class="kpi-value" id="kpi-today">—</span><span class="kpi-note" id="kpi-today-note"></span></div>
+      <div class="kpi"><span class="kpi-label">Forecast for tomorrow</span><span class="kpi-value" id="kpi-next">—</span><span class="kpi-note" id="kpi-next-note"></span></div>
+      <div class="kpi"><span class="kpi-label">Average of recent days</span><span class="kpi-value" id="kpi-avg">—</span><span class="kpi-note" id="kpi-avg-note"></span></div>
+    </section>
+
+    <div class="dash-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="assistant-id">
+            <div class="avatar-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><line x1="12" y1="4" x2="12" y2="8"/><circle cx="9" cy="13.5" r="1"/><circle cx="15" cy="13.5" r="1"/></svg></div>
+            <div><h2>MAPO Assistant</h2><small><span class="status-dot"></span>Ready to help</small></div>
+          </div>
+          <button class="btn ghost" onclick="clearChat()">Clear chat</button>
+        </div>
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages" role="log" aria-live="polite">
+            <div class="message bot-msg">Hello! I am <strong>MAPO Assistant</strong>. Ask me about <strong>today's prediction</strong>, <strong>next week's outlook</strong>, inventory levels, or update stock directly.</div>
+          </div>
+          <div class="chat-chips">
+            <button class="chip-btn" onclick="sendChipQuery('What is today\'s sales forecast?')">Today's forecast</button>
+            <button class="chip-btn" onclick="sendChipQuery('Show current inventory status')">Inventory status</button>
+            <button class="chip-btn" onclick="fillChip('closing cups today for medio is ')">Set closing count</button>
+            <button class="chip-btn" onclick="fillChip('add 50 cups of medio')">Add stock</button>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" aria-label="Message MAPO Assistant" autocomplete="off" placeholder="Try “sales for October 16” or “closing cups today for medio is 5”" onkeydown="if(event.key==='Enter'){event.preventDefault();sendChatMessage();}">
+            <button type="button" class="btn" id="chat-send-btn" onclick="sendChatMessage()">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="side-stack">
+        <section class="panel">
+          <div class="panel-head"><div><h2>Cup stock</h2><p id="stock-date">Latest closing count</p></div><button class="btn ghost" onclick="switchTab('logbook')">Update</button></div>
+          <ul class="stock-list" id="stock-list"></ul>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>Recent sales</h2><p id="trend-note">Last logged days</p></div></div>
+          <div id="trend-chart"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALES FORECAST -->
+  <div id="page-forecast" class="page-view">
+    <div class="log-toolbar">
+      <div class="seg" role="group" aria-label="Forecast range" id="period-seg">
+        <button data-period="tomorrow" aria-pressed="false">Next day</button>
+        <button data-period="next_week" aria-pressed="true">Next 7 days</button>
+        <button data-period="next_month" aria-pressed="false">Next 30 days</button>
+      </div>
+      <p class="muted" id="forecast-analysis-text" aria-live="polite"></p>
+    </div>
+    <section class="panel stats" id="fc-stats" aria-label="Forecast summary"></section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>Daily sales</h2><p>Logged days are solid. Forecast days are outlined, with the likely range as a line.</p></div></div>
+      <div class="legend" id="fc-legend"></div>
+      <div class="chart-container loading" id="forecast-page-chart"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Day by day</h2></div>
+      <ul class="days" id="fc-days"></ul>
+    </section>
+  </div>
+
+  <!-- DIGITIZED LOGBOOK -->
+  <div id="page-logbook" class="page-view">
+    <section class="panel">
+      <div class="log-toolbar">
+        <div>
+          <h2 id="log-heading"></h2>
+          <span class="log-status" id="log-status" data-state="busy">Viewing log for selected date</span>
+        </div>
+        <div class="date-nav">
+          <button class="btn ghost icon" onclick="shiftDay(-1)" aria-label="Previous day"><svg viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18"/></svg></button>
+          <input type="date" id="log-date" class="date-input" aria-label="Log date" onchange="loadLogForDate()">
+          <button class="btn ghost icon" onclick="shiftDay(1)" aria-label="Next day"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
+          <button class="btn ghost" onclick="goToday()">Today</button>
+          <button class="btn ghost" onclick="loadLogForDate()">Reload</button>
         </div>
       </div>
-      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation">
-        <div class="hamburger-icon">
-          <span></span>
-          <span></span>
-          <span></span>
+    </section>
+
+    <div class="notebook-container">
+      <section class="panel log-block">
+        <h3>Usage count</h3><p>Starting accepts sums like 12+8. Press Enter to jump to the next item.</p>
+        <div class="table-wrap"><table class="logbook-table">
+          <thead><tr><th>Item</th><th style="text-align:right">Starting</th><th style="text-align:right">End</th><th style="text-align:right">Usage</th></tr></thead>
+          <tbody id="top-table-body"></tbody>
+        </table></div>
+      </section>
+      <section class="panel log-block">
+        <h3>Cup stock</h3><p>Opening plus stocks gives your starting count.</p>
+        <div class="table-wrap"><table class="logbook-table">
+          <thead><tr><th>Item</th><th style="text-align:right">Opening</th><th style="text-align:right">Stocks</th><th style="text-align:right">Closing</th></tr></thead>
+          <tbody id="bottom-table-body"></tbody>
+        </table></div>
+        <div class="hint" style="margin-top:14px"><i></i>Highlighted values were calculated for you. Type over them to change.</div>
+      </section>
+    </div>
+
+    <div class="savebar">
+      <div class="sales-field">
+        <label for="total-sales-input">Total sales for the day (₱)</label>
+        <input type="number" inputmode="decimal" id="total-sales-input" class="field" placeholder="3800">
+      </div>
+      <button class="btn" id="save-btn" onclick="saveLogbookData()">Save entry</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page-view">
+    <section class="panel">
+      <div class="setting">
+        <div><h3>Branch</h3><p>The branch this system records for.</p></div>
+        <div class="controls"><div class="kv"><span>Branch name</span><strong>Teresa Branch</strong></div></div>
+      </div>
+      <div class="setting">
+        <div><h3>Google Sheets sync</h3><p>Saved logbook entries are also sent to this Web App URL.</p></div>
+        <div class="controls">
+          <label for="script-url-input" class="muted" style="font-size:14px">Web App URL</label>
+          <input type="url" id="script-url-input" class="field" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" oninput="gsStatus()">
+          <div class="row">
+            <button class="btn" onclick="saveApiUrl()">Save URL</button>
+            <button class="btn ghost" onclick="testApiUrl()">Test connection</button>
+            <button class="btn ghost" onclick="clearApiUrl()">Remove</button>
+            <span class="chip" id="gs-status">Not set</span>
+          </div>
+          <p class="form-msg" id="gs-msg" aria-live="polite"></p>
         </div>
-      </button>
-    </div>
-    <ul class="nav-menu">
-      <li class="nav-item active" id="nav-dashboard">
-        <button onclick="switchTab('dashboard')" aria-label="Open dashboard"><span class="nav-icon" aria-hidden="true">▦</span>
-          <span class="nav-text">Dashboard</span>
-        </button>
-      </li>
-      <li class="nav-item" id="nav-forecast">
-        <button onclick="switchTab('forecast')" aria-label="Open sales forecast"><span class="nav-icon" aria-hidden="true">↗</span>
-          <span class="nav-text">Sales Forecast</span>
-        </button>
-      </li>
-      <li class="nav-item" id="nav-logbook">
-        <button onclick="switchTab('logbook')" aria-label="Open digitized logbook"><span class="nav-icon" aria-hidden="true">▤</span>
-          <span class="nav-text">Digitized Logbook</span>
-        </button>
-      </li>
-      <li class="nav-item" id="nav-settings">
-        <button onclick="switchTab('settings')" aria-label="Open settings"><span class="nav-icon" aria-hidden="true">⚙</span>
-          <span class="nav-text">Settings</span>
-        </button>
-      </li>
-    </ul>
-  </aside>
-
-  <main class="main-content">
-    <header class="header">
-      <div class="header-title">
-        <h1 id="page-header-title">Mad Potato Management System: MAPO Assistant Dashboard</h1>
       </div>
-      <div class="header-badges">
-        <span id="realtime-clock" class="clock-badge">🕒 Loading Clock...</span>
-        <span id="sync-status" class="sync-badge">Connecting...</span>
-        <span class="branch-badge">Teresa Branch</span>
+      <div class="setting">
+        <div><h3>Forecast service</h3><p>Where the app reads logs and forecasts from.</p></div>
+        <div class="controls">
+          <div class="kv"><span>Status</span><span class="chip" id="backend-status">Checking</span></div>
+          <div class="kv"><span>Endpoint</span><code id="api-endpoint"></code></div>
+          <div class="row"><button class="btn ghost" onclick="fetchBackendLogs().then(()=>toast('Logs refreshed.'))">Refresh data</button></div>
+        </div>
       </div>
-    </header>
-
-    <!-- DASHBOARD VIEW: MAPO ASSISTANT WORKSPACE -->
-    <div id="page-dashboard" class="page-view active">
-      <div class="grid-1">
-        <section class="card">
-          <div class="assistant-header">
-            <div class="assistant-profile">
-              <div class="avatar-icon">🤖</div>
-              <div>
-                <strong style="font-size: 15px; color: var(--text-main);">MAPO ASSISTANT</strong>
-                <div style="font-size: 11.5px; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                  <span class="status-dot"></span> Active
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-              <div class="message bot-msg">
-                Hello! I am <strong>MAPO Assistant</strong>. Ask me about <strong>today's prediction</strong>, <strong>next week's outlook</strong>, inventory levels, or update stock directly!
-              </div>
-            </div>
-            
-            <div class="chat-chips">
-              <button class="chip-btn" onclick="sendChipQuery('What is today\'s sales forecast?')"> Today's Forecast</button>
-              <button class="chip-btn" onclick="sendChipQuery('closing cups today for medio is 5')"> Close Medio = 5</button>
-              <button class="chip-btn" onclick="sendChipQuery('Show current inventory status')"> Inventory Status</button>
-              <button class="chip-btn" onclick="sendChipQuery('add 50 cups of medio')"> Add 50 Medio</button>
-            </div>
-
-            <div class="chat-input-area">
-              <input 
-                type="text" 
-                id="chat-input" 
-                class="chat-input" 
-                placeholder="Ask e.g. 'closing cups today for medio is 5' or 'sales for October 16'..." 
-                onkeydown="if(event.key==='Enter') { event.preventDefault(); sendChatMessage(); }"
-              >
-              <button 
-                type="button" 
-                class="send-btn" 
-                id="chat-send-btn" 
-                onclick="event.preventDefault(); sendChatMessage();"
-              >Send</button>
-            </div>
-          </div>
-        </section>
+      <div class="setting">
+        <div><h3>Display</h3><p>Shortcuts: press 1 to 4 to switch pages, / to message the assistant.</p></div>
+        <div class="controls"><label class="switch"><span>Compact sidebar<br><small class="muted">Show icons only on larger screens</small></span><input type="checkbox" id="opt-compact" onchange="setCollapsed(this.checked)"></label></div>
       </div>
-    </div>
+    </section>
+  </div>
+</main>
 
-    <!-- SALES FORECAST PAGE -->
-    <div id="page-forecast" class="page-view">
-      <div class="grid-1">
-        <section class="card">
-          <div class="card-title">
-            <span>Detailed AI Sales Forecasting</span>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <label for="forecast-period" style="font-size: 13px; font-weight: 700;">Forecast View:</label>
-              <select id="forecast-period" class="select-control" onchange="renderForecastPage()">
-                <option value="tomorrow">Today's Forecast</option>
-                <option value="next_week" selected>Next Week (7-Day Projection)</option>
-                <option value="next_month">Next Month (4-Week Projection)</option>
-              </select>
-            </div>
-          </div>
-          <div class="summary-box">
-            <div class="summary-header">📊 Demand Trends & Meta Prophet Target Analysis</div>
-            <span id="forecast-analysis-text">
-              Calculating Meta Prophet forecast model based on daily sales inputs...
-            </span>
-          </div>
+<div id="toasts" role="status" aria-live="polite"></div>
 
-          <div class="benchmark-legend">
-            <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div> Deficit (&lt;₱2k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#f97316;"></div> Underperforming (&lt;₱3k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#22c55e;"></div> Acceptable (₱3.8k-₱4.8k)</div>
-            <div class="legend-item"><div class="legend-color" style="background:#0284c7;"></div> High-Performing (&gt;₱5k)</div>
-          </div>
-
-          <div class="chart-container" id="forecast-page-chart"></div>
-        </section>
-      </div>
-    </div>
-
-    <!-- DIGITIZED LOGBOOK PAGE -->
-    <div id="page-logbook" class="page-view">
-      <div class="grid-1">
-        <section class="card">
-          <div class="card-title">
-            <span>Digitized Handwritten Logbook Page</span>
-            <div style="display: flex; gap: 10px;">
-              <button class="btn-action" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);" onclick="loadLogForDate()">🔄 Sync / Load Logs</button>
-              <button class="btn-action" onclick="saveLogbookData()">💾 Save Logbook Entry</button>
-            </div>
-          </div>
-
-          <div class="logbook-toolbar">
-            <div class="date-picker-group">
-              <label for="log-date">📅 Select Log Date:</label>
-              <input type="date" id="log-date" class="date-input" onchange="loadLogForDate()">
-            </div>
-            <span id="log-status">
-              Viewing log for selected date
-            </span>
-          </div>
-
-          <div class="notebook-container">
-            <table class="logbook-table">
-              <thead>
-                <tr>
-                  <th style="width: 90px;">ITEM</th>
-                  <th>STARTING</th>
-                  <th>END</th>
-                  <th>USAGE</th>
-                </tr>
-              </thead>
-              <tbody id="top-table-body"></tbody>
-            </table>
-
-            <table class="logbook-table">
-              <thead>
-                <tr>
-                  <th style="width: 90px;">ITEM</th>
-                  <th>OPENING</th>
-                  <th>STOCKS</th>
-                  <th>CLOSING</th>
-                </tr>
-              </thead>
-              <tbody id="bottom-table-body"></tbody>
-            </table>
-
-            <div class="sales-box-container">
-              <label for="total-sales-input" style="font-size: 14px; font-weight: 800; color: var(--text-main);">💰 Total Sales For The Day (₱):</label>
-              <input type="number" id="total-sales-input" class="grid-input" style="width: 180px; font-size: 15px; text-align: right;" placeholder="3800">
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-
-    <!-- SETTINGS PAGE -->
-    <div id="page-settings" class="page-view">
-      <div class="grid-1">
-        <section class="card">
-          <div class="card-title">
-            <span>System Settings</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 16px; font-size: 13.5px; font-weight: 600; color: var(--text-main);">
-            <div><strong>Branch Name:</strong> Teresa Branch</div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <label><strong>Google Sheets Web App URL:</strong></label>
-              <input type="text" id="script-url-input" class="grid-input" placeholder="Paste Web App URL here...">
-              <div>
-                <button class="btn-action" style="margin-top: 6px;" onclick="saveApiUrl()">Save Web App URL</button>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-
-  </main>
-
-  <script>
+<script>
     const API_BASE_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:")
       ? "http://127.0.0.1:5000/api"
       : `${window.location.origin}/api`;
@@ -1116,12 +489,12 @@
         const res = await fetch(`${API_BASE_URL}/logs`);
         if (res.ok) {
           cachedDB = await res.json();
-          setSyncStatus('Meta Prophet Active', 'online');
+          setSyncStatus('Forecast online', 'online');
         } else {
-          setSyncStatus('Backend Offline', '');
+          setSyncStatus('Offline', '');
         }
       } catch (err) {
-        setSyncStatus('Backend Offline', '');
+        setSyncStatus('Offline', '');
       }
     }
 
@@ -1145,9 +518,9 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="item-label">${item}</td>
-          <td><input type="text" class="grid-input" id="starting-${item}" oninput="onStartingInput('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="end-${item}" oninput="onEndInput('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="usage-${item}" oninput="onUsageInput('${item}')"></td>
+          <td><input type="text" class="grid-input" id="starting-${item}" aria-label="Starting for ${item}" data-col="s" inputmode="text" placeholder="–" oninput="onStartingInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="end-${item}" aria-label="End for ${item}" data-col="e" inputmode="decimal" placeholder="–" oninput="onEndInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="usage-${item}" aria-label="Usage for ${item}" data-col="u" inputmode="decimal" placeholder="–" oninput="onUsageInput('${item}')"></td>
         `;
         topTbody.appendChild(tr);
       });
@@ -1158,9 +531,9 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="item-label">${item}</td>
-          <td><input type="text" class="grid-input" id="opening-${item}" oninput="onOpeningInput('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="stocks-${item}" oninput="onStocksInput('${item}')"></td>
-          <td><input type="number" step="any" class="grid-input" id="closing-${item}" oninput="onClosingInput('${item}')"></td>
+          <td><input type="text" class="grid-input" id="opening-${item}" aria-label="Opening for ${item}" data-col="o" inputmode="text" placeholder="–" oninput="onOpeningInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="stocks-${item}" aria-label="Stocks for ${item}" data-col="k" inputmode="decimal" placeholder="–" oninput="onStocksInput('${item}')"></td>
+          <td><input type="number" step="any" class="grid-input" id="closing-${item}" aria-label="Closing for ${item}" data-col="c" inputmode="decimal" placeholder="–" oninput="onClosingInput('${item}')"></td>
         `;
         bottomTbody.appendChild(tr);
       });
@@ -1357,7 +730,7 @@
 
       if (cachedDB[dateVal]) {
         populateLogUI(cachedDB[dateVal]);
-        statusEl.textContent = `Loaded logs for ${dateVal} (Local Cache ✅)`;
+        statusEl.textContent = `Loaded logs for ${dateVal} (from cache)`;
         return;
       }
 
@@ -1369,7 +742,7 @@
           if (json.status === "success" && json.data) {
             populateLogUI(json.data);
             cachedDB[dateVal] = json.data;
-            statusEl.textContent = `Loaded logs for ${dateVal} (Synced from Google Sheets ✅)`;
+            statusEl.textContent = `Loaded logs for ${dateVal} (from Google Sheets)`;
             fetchedDirectly = true;
           }
         } catch (err) {
@@ -1381,7 +754,7 @@
         populateLogUI(null);
         const autoFilled = applyPreviousDayCarryOver(dateVal);
         if (autoFilled) {
-          statusEl.textContent = `New log for ${dateVal} (Starting & Opening auto-filled from previous day ⚡)`;
+          statusEl.textContent = `New log for ${dateVal} (Starting & Opening auto-filled from previous day)`;
         } else {
           statusEl.textContent = `No saved logs for ${dateVal}`;
         }
@@ -1391,7 +764,7 @@
     async function saveLogbookData() {
       const dateVal = document.getElementById('log-date').value;
       if (!dateVal) {
-        alert("Please select a date first.");
+        toast("Please select a date first.");
         return;
       }
 
@@ -1418,12 +791,13 @@
       const payload = { date: dateVal, sales: salesVal, top: topData, bottom: bottomData };
 
       try {
-        await fetch(`${API_BASE_URL}/logs`, {
+        const saveRes = await fetch(`${API_BASE_URL}/logs`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
+        if (!saveRes.ok) throw new Error('Save failed');
         if (GOOGLE_SCRIPT_URL) {
           fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
@@ -1433,11 +807,11 @@
           }).catch(err => console.warn("Google Sheets Sync Warning:", err));
         }
 
-        alert(`Entry for ${dateVal} saved and synced!`);
+        toast(`Entry for ${dateVal} saved.`);
         await fetchBackendLogs();
         renderForecastPage();
       } catch (err) {
-        alert('Failed to save log entry.');
+        toast('Failed to save log entry.');
       }
     }
 
@@ -1445,7 +819,7 @@
       const url = document.getElementById('script-url-input').value.trim();
       GOOGLE_SCRIPT_URL = url;
       localStorage.setItem('mad_potato_api_url', url);
-      alert('Google Sheet Web App URL saved!');
+      toast('Google Sheet Web App URL saved!');
     }
 
     async function renderForecastPage() {
@@ -1630,6 +1004,297 @@
       });
     };
   </script>
+<script>
+/* ===== UI layer: navigation, toasts, dashboard, forecast chart, settings ===== */
+const $ = id => document.getElementById(id);
+const isMobile = () => matchMedia('(max-width:768px)').matches;
+const peso = n => '₱' + Math.round(n).toLocaleString('en-US');
+const localISO = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const toDate = s => new Date(s + 'T00:00:00');
+const fmtShort = s => toDate(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const fmtLong = s => toDate(s).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const CAT = {
+  deficit:     { c: '#ef4444', l: 'Deficit',         r: 'Under ₱2k' },
+  bad:         { c: '#f97316', l: 'Underperforming', r: '₱2k–3k' },
+  'below-avg': { c: '#eab308', l: 'Below average',   r: '₱3k–3.8k' },
+  acceptable:  { c: '#16a34a', l: 'Acceptable',      r: '₱3.8k–4.8k' },
+  successful:  { c: '#0284c7', l: 'High-performing', r: 'Over ₱4.8k' }
+};
+const catOf = a => a < 2000 ? 'deficit' : a < 3000 ? 'bad' : a < 3800 ? 'below-avg' : a <= 4800 ? 'acceptable' : 'successful';
+const chipFor = a => { const k = CAT[catOf(a)]; return `<span class="chip" style="--c:${k.c}">${k.l}</span>`; };
 
+function toast(msg, type) {
+  type = type || (/fail|error|could not|invalid|can.t/i.test(msg) ? 'error' : /please/i.test(msg) ? 'info' : 'ok');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  $('toasts').appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, 3800);
+}
+
+/* Sidebar + routing */
+function setCollapsed(v) {
+  document.body.classList.toggle('sidebar-collapsed', v);
+  localStorage.setItem('mp_collapsed', v ? '1' : '0');
+  const c = $('opt-compact'); if (c) c.checked = v;
+}
+function toggleSidebar() {
+  if (isMobile()) document.body.classList.toggle('sidebar-open');
+  else setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+}
+const PAGES = {
+  dashboard: ['Dashboard', 'Ask the assistant, check today\u2019s numbers and update stock.'],
+  forecast:  ['Sales forecast', 'Projected daily sales based on your logged history.'],
+  logbook:   ['Digitized logbook', 'Record usage, stock and sales for the day.'],
+  settings:  ['Settings', 'Branch details, Google Sheets sync and display options.']
+};
+let currentTab = 'dashboard';
+function switchTab(id) {
+  if (!PAGES[id]) id = 'dashboard';
+  currentTab = id;
+  document.querySelectorAll('.page-view').forEach(p => p.classList.toggle('active', p.id === 'page-' + id));
+  document.querySelectorAll('.nav-item button').forEach(b => b.removeAttribute('aria-current'));
+  $('nav-' + id).querySelector('button').setAttribute('aria-current', 'page');
+  $('page-header-title').textContent = PAGES[id][0];
+  $('page-header-sub').textContent = PAGES[id][1];
+  document.title = PAGES[id][0] + ' | Mad Potato';
+  document.body.classList.remove('sidebar-open');
+  try { sessionStorage.setItem('mapo_active_tab', id); } catch (e) {}
+  if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  if (id === 'forecast') renderForecastPage();
+  if (id === 'dashboard') refreshDashboard();
+  window.scrollTo(0, 0);
+}
+function updateClock() {
+  const n = new Date();
+  $('realtime-clock').innerHTML = `${n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} <b>${n.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</b>`;
+}
+const _setSync = setSyncStatus;
+setSyncStatus = function (text, type) {
+  _setSync(text, type);
+  const b = $('backend-status');
+  if (b) { b.textContent = type === 'online' ? 'Online' : type === 'busy' ? 'Checking' : 'Offline'; b.style.setProperty('--c', type === 'online' ? '#16a34a' : type === 'busy' ? '#d97706' : '#dc2626'); }
+};
+
+/* Chat helpers */
+const GREETING = 'Hello! I am <strong>MAPO Assistant</strong>. Ask me about <strong>today\'s prediction</strong>, <strong>next week\'s outlook</strong>, inventory levels, or update stock directly.';
+function clearChat() {
+  try { sessionStorage.removeItem('mapo_chat_html'); } catch (e) {}
+  $('chat-messages').innerHTML = `<div class="message bot-msg">${GREETING}</div>`;
+}
+function fillChip(text) { const i = $('chat-input'); i.value = text; i.focus(); i.setSelectionRange(text.length, text.length); }
+
+/* Dashboard */
+async function refreshDashboard() {
+  const today = localISO();
+  const days = Object.keys(cachedDB).filter(d => (cachedDB[d].sales || 0) > 0).sort();
+  const t = cachedDB[today];
+  $('kpi-today').textContent = t && t.sales > 0 ? peso(t.sales) : '—';
+  $('kpi-today-note').innerHTML = t && t.sales > 0 ? chipFor(t.sales) : 'No sales logged yet today';
+  const recent = days.slice(-7);
+  if (recent.length) {
+    const avg = recent.reduce((a, d) => a + cachedDB[d].sales, 0) / recent.length;
+    $('kpi-avg').textContent = peso(avg);
+    $('kpi-avg-note').innerHTML = `${chipFor(avg)} <span>last ${recent.length} logged day${recent.length > 1 ? 's' : ''}</span>`;
+  } else { $('kpi-avg').textContent = '—'; $('kpi-avg-note').textContent = 'Log sales to see an average'; }
+
+  /* trend sparkline */
+  const tr = $('trend-chart');
+  if (recent.length >= 2) {
+    const vals = recent.map(d => cachedDB[d].sales), max = Math.max(...vals) * 1.1, min = Math.min(...vals) * .9;
+    const pts = vals.map((v, i) => [8 + i * (264 / (vals.length - 1)), 76 - ((v - min) / (max - min || 1)) * 64]);
+    const line = pts.map(p => p.join(',')).join(' ');
+    tr.innerHTML = `<svg class="spark" viewBox="0 0 280 88" preserveAspectRatio="none" role="img" aria-label="Sales over the last ${recent.length} logged days"><polygon points="8,84 ${line} 272,84" fill="rgba(21,128,61,.12)"/><polyline points="${line}" fill="none" stroke="#15803d" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === pts.length - 1 ? 4.5 : 3}" fill="${i === pts.length - 1 ? '#facc15' : '#fff'}" stroke="#15803d" stroke-width="2"><title>${fmtShort(recent[i])}: ${peso(vals[i])}</title></circle>`).join('')}</svg><div class="spark-axis"><span>${fmtShort(recent[0])}</span><span>${fmtShort(recent[recent.length - 1])}</span></div>`;
+    $('trend-note').textContent = `Hover or tap a point for the amount`;
+  } else { tr.innerHTML = '<div class="empty" style="padding:12px"><p>Two or more logged days are needed to show a trend.</p></div>'; }
+
+  /* stock */
+  const sd = Object.keys(cachedDB).filter(d => d <= today && cachedDB[d].bottom).sort().pop();
+  const sl = $('stock-list');
+  if (sd) {
+    const b = cachedDB[sd].bottom, vals = bottomItems.map(i => parseFloat(b[i] && b[i].closing)), mx = Math.max(1, ...vals.filter(v => !isNaN(v)));
+    sl.innerHTML = bottomItems.map((i, k) => `<li class="stock-row"><b>${i}</b><span class="meter"><i style="width:${isNaN(vals[k]) ? 0 : Math.max(2, vals[k] / mx * 100)}%"></i></span><span>${isNaN(vals[k]) ? '—' : vals[k]}</span></li>`).join('');
+    $('stock-date').textContent = `Closing count, ${fmtShort(sd)}`;
+  } else { sl.innerHTML = '<li class="empty" style="padding:12px"><p>No stock logged yet. Add a day in the logbook.</p></li>'; }
+
+  /* tomorrow */
+  const f = await fetchProphetForecast('tomorrow');
+  const nx = f && f.filter(d => !d.is_actual).pop();
+  if (nx) {
+    $('kpi-next').textContent = peso(nx.yhat);
+    $('kpi-next-note').innerHTML = `${chipFor(nx.yhat)} <span>likely ${peso(nx.yhat_lower)}–${peso(nx.yhat_upper)}</span>`;
+  } else { $('kpi-next').textContent = '—'; $('kpi-next-note').textContent = f === null ? 'Forecast service offline' : 'Needs more logged days'; }
+}
+const _fbl = fetchBackendLogs;
+fetchBackendLogs = async function () { await _fbl(); if (currentTab === 'dashboard') refreshDashboard(); };
+
+/* Forecast */
+let fcPeriod = 'next_week', fcData = [], fcFilter = null, geo = null;
+async function fetchProphetForecast(period = 'next_week') {
+  try { const r = await fetch(`${API_BASE_URL}/forecast?period=${period}`); if (r.ok) return (await r.json()).forecast || []; } catch (e) { console.error('Forecast request failed:', e); }
+  return null;
+}
+async function renderForecastPage() {
+  const box = $('forecast-page-chart'); if (!box) return;
+  box.classList.add('loading');
+  const data = await fetchProphetForecast(fcPeriod);
+  box.classList.remove('loading');
+  if (!data || !data.length) {
+    fcData = []; $('fc-stats').innerHTML = ''; $('fc-days').innerHTML = ''; $('forecast-analysis-text').textContent = '';
+    box.innerHTML = `<div class="empty"><strong>${data === null ? 'Can\u2019t reach the forecast service' : 'Not enough sales history yet'}</strong><p>${data === null ? 'Check that app.py is running, then try again.' : 'The forecast needs several days of logged sales to learn from.'}</p><button class="btn" onclick="${data === null ? 'renderForecastPage()' : "switchTab('logbook')"}">${data === null ? 'Try again' : 'Open logbook'}</button></div>`;
+    return;
+  }
+  fcData = data;
+  const rows = data.filter(d => !d.is_actual), use = rows.length ? rows : data;
+  const total = use.reduce((a, d) => a + d.yhat, 0), avg = total / use.length;
+  const best = use.reduce((a, b) => b.yhat > a.yhat ? b : a), low = use.reduce((a, b) => b.yhat < a.yhat ? b : a);
+  $('fc-stats').innerHTML = [
+    ['Projected total', peso(total), `${use.length} day${use.length > 1 ? 's' : ''}`],
+    ['Daily average', peso(avg), CAT[catOf(avg)].l],
+    ['Best day', peso(best.yhat), fmtShort(best.date)],
+    ['Lowest day', peso(low.yhat), fmtShort(low.date)]
+  ].map(s => `<div class="stat"><small>${s[0]}</small><strong>${s[1]}</strong><span>${s[2]}</span></div>`).join('');
+  $('forecast-analysis-text').textContent = `Expect about ${peso(avg)} a day, which is ${CAT[catOf(avg)].l.toLowerCase()} against your benchmarks.`;
+  $('fc-days').innerHTML = data.map((d, i) => `<li data-i="${i}"><span>${fmtLong(d.date).replace(/, \d{4}$/, '')}</span>${chipFor(d.yhat)}<span class="d-amt">${peso(d.yhat)}</span><span class="d-rng">${d.is_actual ? 'Logged' : `Likely ${peso(d.yhat_lower)}–${peso(d.yhat_upper)}`}</span></li>`).join('');
+  drawChart(true);
+}
+function buildLegend() {
+  $('fc-legend').innerHTML = Object.keys(CAT).map(k => `<button style="--c:${CAT[k].c}" data-k="${k}" aria-pressed="false"><i></i>${CAT[k].l} <small>${CAT[k].r}</small></button>`).join('');
+}
+function drawChart(animate) {
+  const box = $('forecast-page-chart'); if (!fcData.length) return;
+  const W = Math.max(box.clientWidth, 320), H = W < 560 ? 280 : 340, m = { l: 44, r: 10, t: 14, b: 46 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = fcData.length, bw = iw / n;
+  const top = Math.max(5500, ...fcData.map(d => d.yhat_upper || d.yhat)), mx = Math.ceil(top * 1.05 / 1000) * 1000;
+  const y = v => m.t + ih - (v / mx) * ih, step = mx > 8000 ? 2000 : 1000;
+  geo = { m, bw, y, W };
+  let s = `<svg class="${animate ? 'anim' : ''}" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="Daily sales chart">`;
+  for (let v = 0; v <= mx; v += step) s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v / 1000}k</text>`;
+  s += `<rect class="band" x="${m.l}" y="${y(4800)}" width="${iw}" height="${y(3800) - y(4800)}"/><text class="ref" x="${W - m.r - 6}" y="${y(4800) + 14}" text-anchor="end">Typical day</text>`;
+  s += `<line class="floor" x1="${m.l}" x2="${W - m.r}" y1="${y(2000)}" y2="${y(2000)}"/><text class="ref" x="${W - m.r - 6}" y="${y(2000) - 6}" text-anchor="end">Operating minimum</text>`;
+  const fi = fcData.findIndex(d => !d.is_actual);
+  if (fi > 0) s += `<line class="split" x1="${m.l + fi * bw}" x2="${m.l + fi * bw}" y1="${m.t}" y2="${m.t + ih}"/><text class="ref" x="${m.l + fi * bw + 6}" y="${m.t + 12}">Forecast</text>`;
+  const every = n <= 14 ? 1 : Math.ceil(n / 9);
+  fcData.forEach((d, i) => {
+    const k = catOf(d.yhat), c = CAT[k].c, w = Math.min(bw * .62, 56), x = m.l + i * bw + (bw - w) / 2, h = Math.max(ih * d.yhat / mx, 2), cx = m.l + (i + .5) * bw;
+    s += `<g class="bar-g" data-i="${i}" data-k="${k}" tabindex="0" style="--d:${Math.min(i * 22, 500)}ms" aria-label="${fmtLong(d.date)}, ${peso(d.yhat)}, ${CAT[k].l}, ${d.is_actual ? 'logged' : 'forecast'}"><rect class="hit" x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}"/><rect class="bar ${d.is_actual ? '' : 'proj'}" x="${x}" y="${y(d.yhat)}" width="${w}" height="${h}" rx="${Math.min(6, w / 2)}" fill="${c}" stroke="${c}"/>`;
+    if (!d.is_actual && d.yhat_upper > d.yhat_lower) s += `<path class="whisk" d="M${cx} ${y(d.yhat_upper)}V${y(d.yhat_lower)}M${cx - 4} ${y(d.yhat_upper)}h8M${cx - 4} ${y(d.yhat_lower)}h8"/>`;
+    s += `</g>`;
+    if (i % every === 0) s += `<text class="xl" x="${m.l + (i + .5) * bw}" y="${H - 24}" text-anchor="middle"><tspan x="${m.l + (i + .5) * bw}" font-weight="600" fill="#0f172a">${fmtShort(d.date)}</tspan>${n <= 14 ? `<tspan x="${m.l + (i + .5) * bw}" dy="15">${toDate(d.date).toLocaleDateString('en-US', { weekday: 'short' })}</tspan>` : ''}</text>`;
+  });
+  box.innerHTML = s + `</svg><div class="tip" id="fc-tip" hidden></div>`;
+  applyFilter();
+}
+function applyFilter() {
+  document.querySelectorAll('#forecast-page-chart .bar-g').forEach(g => g.classList.toggle('dim', !!fcFilter && g.dataset.k !== fcFilter));
+  document.querySelectorAll('#fc-legend button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === fcFilter)));
+}
+function showTip(i) {
+  const box = $('forecast-page-chart'), tip = $('fc-tip'), d = fcData[i]; if (!tip || !d || !geo) return;
+  box.querySelectorAll('.bar-g.on').forEach(g => g.classList.remove('on'));
+  const g = box.querySelector(`.bar-g[data-i="${i}"]`); if (g) g.classList.add('on');
+  tip.innerHTML = `<b>${fmtLong(d.date)}</b><span>${peso(d.yhat)}</span><em style="font-style:normal">${CAT[catOf(d.yhat)].l}</em><small>${d.is_actual ? 'Logged sales' : `Forecast, likely ${peso(d.yhat_lower)}–${peso(d.yhat_upper)}`}</small>`;
+  tip.hidden = false;
+  tip.style.left = Math.min(Math.max(geo.m.l + (i + .5) * geo.bw, 90), geo.W - 90) + 'px';
+  tip.style.top = (geo.y(d.yhat) + 8) + 'px';
+}
+function hideTip() { const t = $('fc-tip'); if (t) t.hidden = true; document.querySelectorAll('#forecast-page-chart .bar-g.on').forEach(g => g.classList.remove('on')); }
+
+/* Logbook */
+const _pl = populateLogUI;
+populateLogUI = function (log) { _pl(log); document.querySelectorAll('.grid-input.calc').forEach(e => e.classList.remove('calc')); };
+setVal = function (id, val) {
+  const el = $(id); if (!el) return;
+  const ok = val !== null && !isNaN(val);
+  el.value = ok ? Math.round(val * 100) / 100 : '';
+  el.classList.toggle('calc', ok);
+};
+const _co = applyPreviousDayCarryOver;
+applyPreviousDayCarryOver = function (d) {
+  const r = _co(d);
+  if (r) document.querySelectorAll('[id^="starting-"],[id^="opening-"]').forEach(e => e.classList.toggle('calc', e.value !== ''));
+  return r;
+};
+const _ll = loadLogForDate;
+loadLogForDate = async function () { const v = $('log-date').value; if (v) $('log-heading').textContent = fmtLong(v); return _ll(); };
+const _sl = saveLogbookData;
+saveLogbookData = async function () {
+  const b = $('save-btn'); b.disabled = true; b.textContent = 'Saving...';
+  try { await _sl(); } finally { b.disabled = false; b.textContent = 'Save entry'; }
+};
+function shiftDay(n) { const d = toDate($('log-date').value || localISO()); d.setDate(d.getDate() + n); $('log-date').value = localISO(d); loadLogForDate(); }
+function goToday() { $('log-date').value = localISO(); loadLogForDate(); }
+
+/* Settings */
+function validUrl(u) { try { return new URL(u).protocol === 'https:'; } catch (e) { return false; } }
+function gsStatus() {
+  const u = $('script-url-input').value.trim(), s = $('gs-status');
+  s.textContent = !u ? 'Not set' : u === GOOGLE_SCRIPT_URL ? 'Saved' : 'Unsaved changes';
+  s.style.setProperty('--c', !u ? '#64748b' : u === GOOGLE_SCRIPT_URL ? '#16a34a' : '#d97706');
+}
+function saveApiUrl() {
+  const u = $('script-url-input').value.trim(), msg = $('gs-msg');
+  if (u && !validUrl(u)) { msg.className = 'form-msg err'; msg.textContent = 'Enter a full https:// link, like the one Google gives you after you deploy the script.'; return; }
+  msg.className = 'form-msg'; msg.textContent = '';
+  GOOGLE_SCRIPT_URL = u; localStorage.setItem('mad_potato_api_url', u); gsStatus();
+  toast(u ? 'Google Sheets URL saved.' : 'Google Sheets sync turned off.');
+}
+function clearApiUrl() { $('script-url-input').value = ''; saveApiUrl(); }
+async function testApiUrl() {
+  const u = $('script-url-input').value.trim(), msg = $('gs-msg');
+  if (!validUrl(u)) { msg.className = 'form-msg err'; msg.textContent = 'Add a valid https:// URL first.'; return; }
+  msg.className = 'form-msg'; msg.textContent = 'Testing connection...';
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(`${u}?date=${localISO()}`, { signal: ctl.signal }); await r.json();
+    msg.textContent = 'Connected. The sheet responded.'; toast('Connected to Google Sheets.');
+  } catch (e) { msg.className = 'form-msg err'; msg.textContent = 'Could not reach the sheet. Check the URL and that the script is deployed for anyone with the link.'; }
+  clearTimeout(timer);
+}
+
+/* Boot */
+document.addEventListener('input', e => { if (e.isTrusted && e.target.classList && e.target.classList.contains('calc')) e.target.classList.remove('calc'); });
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (e.key === 'Escape') document.body.classList.remove('sidebar-open');
+  if (t.matches && t.matches('.grid-input[data-col]') && e.key === 'Enter') {
+    const all = [...document.querySelectorAll(`.grid-input[data-col="${t.dataset.col}"]`)], nx = all[all.indexOf(t) + (e.shiftKey ? -1 : 1)];
+    e.preventDefault(); if (nx) { nx.focus(); nx.select(); }
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey || (t.matches && t.matches('input,textarea,select'))) return;
+  if (e.key >= '1' && e.key <= '4') switchTab(['dashboard', 'forecast', 'logbook', 'settings'][e.key - 1]);
+  if (e.key === '/') { e.preventDefault(); switchTab('dashboard'); $('chat-input').focus(); }
+});
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (PAGES[h] && h !== currentTab) switchTab(h); });
+$('forecast-page-chart').addEventListener('mouseover', e => { const g = e.target.closest('.bar-g'); if (g) showTip(+g.dataset.i); });
+$('forecast-page-chart').addEventListener('focusin', e => { const g = e.target.closest('.bar-g'); if (g) showTip(+g.dataset.i); });
+$('forecast-page-chart').addEventListener('mouseleave', hideTip);
+$('forecast-page-chart').addEventListener('focusout', hideTip);
+$('fc-days').addEventListener('mouseover', e => { const li = e.target.closest('li'); if (li) showTip(+li.dataset.i); });
+$('fc-days').addEventListener('mouseleave', hideTip);
+$('fc-legend').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { fcFilter = fcFilter === b.dataset.k ? null : b.dataset.k; applyFilter(); } });
+$('period-seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  fcPeriod = b.dataset.period;
+  document.querySelectorAll('#period-seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderForecastPage();
+});
+let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (fcData.length && currentTab === 'forecast') drawChart(false); }, 120); }).observe($('forecast-page-chart'));
+
+window.onload = function () {
+  buildLegend(); buildLogbookUI(); restoreChat(); updateClock(); setInterval(updateClock, 20000);
+  if (localStorage.getItem('mp_collapsed') === '1') setCollapsed(true);
+  $('log-date').value = localISO(); $('log-heading').textContent = fmtLong(localISO());
+  $('script-url-input').value = GOOGLE_SCRIPT_URL; $('api-endpoint').textContent = API_BASE_URL; gsStatus();
+  let start = location.hash.slice(1); try { start = start || sessionStorage.getItem('mapo_active_tab'); } catch (e) {}
+  switchTab(PAGES[start] ? start : 'dashboard');
+  fetchBackendLogs().then(() => { loadLogForDate(); if (currentTab === 'forecast') renderForecastPage(); });
+};
+const logStatusEl = $('log-status');
+new MutationObserver(() => {
+  const t = logStatusEl.textContent;
+  logStatusEl.dataset.state = /Syncing/.test(t) ? 'busy' : /Loaded/.test(t) ? 'ok' : /New log|No saved/.test(t) ? 'new' : '';
+}).observe(logStatusEl, { childList: true, characterData: true, subtree: true });
+</script>
 </body>
 </html>
