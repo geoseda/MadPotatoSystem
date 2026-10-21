@@ -10,14 +10,18 @@ MODEL_OUTPUT = 'prophet_model.joblib'
 FORECAST_OUTPUT = 'prophet_forecast.joblib'
 
 def add_custom_features(df):
-    """Adds Payday and Weekend binary indicators to capture store surges."""
+    """
+    Adds Payday and Weekend binary indicators to capture retail store demand surges.
+    """
     df['day'] = df['ds'].dt.day
     df['dayofweek'] = df['ds'].dt.dayofweek
+    df['is_month_end'] = df['ds'].dt.is_month_end.astype(int)
     
-    # Philippine Payday window (14th-16th and 29th-31st)
-    df['is_payday'] = df['day'].apply(lambda d: 1 if (14 <= d <= 16) or (29 <= d <= 31) else 0)
+    # Philippine Payday window (14th-16th and 28th-31st)
+    df['is_payday'] = df['day'].apply(lambda d: 1 if (14 <= d <= 16) or (28 <= d <= 31) else 0)
     # Weekend window (Friday, Saturday, Sunday)
     df['is_weekend'] = df['dayofweek'].apply(lambda dw: 1 if dw in [4, 5, 6] else 0)
+    
     return df
 
 def train_and_save_prophet():
@@ -28,7 +32,7 @@ def train_and_save_prophet():
     # 1. Load and Parse Dataset
     df = pd.read_csv(CSV_FILE)
     
-    # Map column names if using full logbook format ('Date' -> 'ds', 'Daily_Total_Sales' -> 'y')
+    # Map column names
     if 'Date' in df.columns:
         df['Date'] = df['Date'].ffill()
         df['ds'] = pd.to_datetime(df['Date'])
@@ -46,34 +50,64 @@ def train_and_save_prophet():
     # Deduplicate daily records to aggregate total revenue per date
     df_daily = df.groupby('ds', as_index=False)['y'].first()
     df_daily = df_daily.dropna().sort_values('ds').reset_index(drop=True)
+
+    if df_daily.empty:
+        print("❌ Error: No valid numeric sales data found.")
+        return
+
+    # ----------------------------------------------------
+    # ACCURACY IMPROVEMENT: Fill date gaps with linear interpolation
+    # ----------------------------------------------------
+    full_date_range = pd.date_range(start=df_daily['ds'].min(), end=df_daily['ds'].max(), freq='D')
+    df_daily = df_daily.set_index('ds').reindex(full_date_range).rename_axis('ds').reset_index()
+    df_daily['y'] = df_daily['y'].interpolate(method='linear').fillna(0)
     
-    print(f"📊 Dataset Loaded: {len(df_daily)} unique daily entries from {df_daily['ds'].min().strftime('%Y-%m-%d')} to {df_daily['ds'].max().strftime('%Y-%m-%d')}")
+    print(f"📊 Dataset Processed: {len(df_daily)} continuous daily entries from {df_daily['ds'].min().strftime('%Y-%m-%d')} to {df_daily['ds'].max().strftime('%Y-%m-%d')}")
 
     # 2. Add Custom Features
     df_clean = add_custom_features(df_daily.copy())
 
-    # 3. Configure & Fit High-Sensitivity Prophet Model
+    # 3. Configure & Fit High-Accuracy Prophet Model
     model = Prophet(
-        yearly_seasonality=False,
-        weekly_seasonality=True,
+        growth='linear',
+        yearly_seasonality=False,      # Set True if dataset spans >1-2 years
+        weekly_seasonality=True,       # High day-of-week sensitivity
         daily_seasonality=False,
-        seasonality_mode='multiplicative',
-        changepoint_prior_scale=0.35,  # High flexibility to track recent sales trend shifts
-        seasonality_prior_scale=2.0,   # High sensitivity to day-of-week patterns
+        seasonality_mode='multiplicative', # Scales weekly/payday variations proportionally to revenue
+        changepoint_prior_scale=0.08,  # Tuned scale (0.08) prevents overfitting on temporary noise
+        seasonality_prior_scale=10.0,  # Strongly fits day-of-week patterns
         holidays_prior_scale=10.0,
-        n_changepoints=30
+        interval_width=0.95
     )
-    
-    model.add_regressor('is_payday')
-    model.add_regressor('is_weekend')
+
+    # ACCURACY IMPROVEMENT: Add Philippine Country Holidays
+    try:
+        model.add_country_holidays(country_name='PH')
+        print("🇵🇭 Applied Philippine National Holidays to Prophet Model.")
+    except Exception as e:
+        print(f"⚠️ Notice: PH Holidays omitted ({e})")
+
+    # Add regressors
+    model.add_regressor('is_payday', prior_scale=10.0)
+    model.add_regressor('is_weekend', prior_scale=10.0)
     
     model.fit(df_clean)
 
     # 4. In-Sample Evaluation
     in_sample = model.predict(df_clean)
+    
+    # Clip negative values
+    in_sample['yhat'] = in_sample['yhat'].clip(lower=0)
+    
     mae = mean_absolute_error(df_clean['y'], in_sample['yhat'])
     rmse = np.sqrt(mean_squared_error(df_clean['y'], in_sample['yhat']))
-    mape = np.mean(np.abs((df_clean['y'] - in_sample['yhat']) / df_clean['y'])) * 100
+    
+    # Safe MAPE calculation ignoring zeros
+    non_zero_mask = df_clean['y'] > 0
+    if non_zero_mask.any():
+        mape = np.mean(np.abs((df_clean.loc[non_zero_mask, 'y'] - in_sample.loc[non_zero_mask, 'yhat']) / df_clean.loc[non_zero_mask, 'y'])) * 100
+    else:
+        mape = 0.0
 
     print("\n=== 📈 Meta Prophet Retrained Evaluation ===")
     print(f"Mean Absolute Error (MAE)     : ₱{mae:.2f}")
@@ -85,6 +119,12 @@ def train_and_save_prophet():
     future = add_custom_features(future)
     
     forecast = model.predict(future)
+    
+    # Clip negative predictions
+    forecast['yhat'] = forecast['yhat'].clip(lower=0)
+    forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
+    forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
+    
     forecast['ds_str'] = forecast['ds'].dt.strftime('%Y-%m-%d')
 
     def assign_performance_tier(yhat):
