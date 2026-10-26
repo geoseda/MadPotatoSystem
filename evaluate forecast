@@ -1,0 +1,99 @@
+"""
+evaluate_forecast.py  -  Rolling-origin backtest of the Prophet model used in app.py
+against simple baselines on sales_data.csv (CPE 412 sections 2.4 and 3.1).
+
+Usage:  python evaluate_forecast.py [--csv sales_data.csv] [--horizon 7] [--folds 8]
+
+For each fold the model is trained only on days before the cut-off and asked to
+predict the next `horizon` days (expanding window). Reports MAE, RMSE, MAPE, and
+how often the predicted performance tier matches the actual tier.
+"""
+import argparse
+import json
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score
+
+TIERS = [(2000, "deficit"), (3000, "underperforming"), (3800, "below_average"), (4800.0001, "acceptable")]
+
+
+def tier(v):                      # same thresholds as evaluate_sales_performance() in app.py
+    for cap, name in TIERS:
+        if v < cap:
+            return name
+    return "high"
+
+
+def load(csv):
+    df = pd.read_csv(csv)
+    df["Date"] = pd.to_datetime(df["Date"].ffill())
+    s = df.groupby("Date")["Daily_Total_Sales"].first()
+    return s[s > 0].rename("y").reset_index().rename(columns={"Date": "ds"})
+
+
+def prophet_predict(train, horizon):
+    from prophet import Prophet      # same hyper-parameters as fit_prophet_model() in app.py
+    m = Prophet(yearly_seasonality=False, weekly_seasonality=True, daily_seasonality=False,
+                seasonality_mode="multiplicative", changepoint_prior_scale=0.35,
+                seasonality_prior_scale=2.0)
+    m.fit(train)
+    fc = m.predict(m.make_future_dataframe(periods=horizon, freq="D")).tail(horizon)
+    return fc["yhat"].clip(lower=0).values, fc["yhat_lower"].values, fc["yhat_upper"].values
+
+
+def ma7_predict(train, horizon):
+    return np.repeat(train["y"].tail(7).mean(), horizon)
+
+
+def snaive_predict(train, horizon):
+    last = train["y"].tail(7).values
+    return np.array([last[i % 7] for i in range(horizon)])
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--csv", default="sales_data.csv")
+    ap.add_argument("--horizon", type=int, default=7)
+    ap.add_argument("--folds", type=int, default=8)
+    a = ap.parse_args()
+
+    d = load(a.csv)
+    n = len(d)
+    cuts = [n - a.horizon * k for k in range(a.folds, 0, -1)]
+    models = {"Prophet (app.py)": prophet_predict, "7-day moving average": lambda t, h: ma7_predict(t, h),
+              "Seasonal naive (t-7)": lambda t, h: snaive_predict(t, h)}
+    store = {k: {"y": [], "p": [], "lo": [], "hi": []} for k in models}
+
+    for c in cuts:
+        train, test = d.iloc[:c], d.iloc[c:c + a.horizon]
+        for name, fn in models.items():
+            try:
+                out = fn(train, a.horizon)
+            except ImportError:
+                continue
+            p, lo, hi = out if isinstance(out, tuple) else (out, None, None)
+            store[name]["y"] += list(test["y"]); store[name]["p"] += list(p)
+            if lo is not None:
+                store[name]["lo"] += list(lo); store[name]["hi"] += list(hi)
+
+    res = {}
+    print(f"Days: {n}   horizon: {a.horizon}   folds: {a.folds}   test days: {a.horizon * a.folds}\n")
+    print(f"{'Model':26s} {'MAE':>8s} {'RMSE':>8s} {'MAPE%':>7s} {'TierAcc':>8s} {'TierF1':>7s} {'Cover80':>8s}")
+    for name, s in store.items():
+        if not s["y"]:
+            print(f"{name:26s}  (skipped: library not installed)")
+            continue
+        y, p = np.array(s["y"]), np.array(s["p"])
+        mae = np.mean(np.abs(y - p)); rmse = np.sqrt(np.mean((y - p) ** 2)); mape = np.mean(np.abs((y - p) / y)) * 100
+        ty, tp = [tier(v) for v in y], [tier(v) for v in p]
+        tacc = accuracy_score(ty, tp); tf1 = f1_score(ty, tp, average="macro", zero_division=0)
+        cov = float(np.mean((y >= np.array(s["lo"])) & (y <= np.array(s["hi"])))) if s["lo"] else float("nan")
+        res[name] = dict(mae=mae, rmse=rmse, mape=mape, tier_acc=tacc, tier_f1_macro=tf1, interval_coverage=cov)
+        print(f"{name:26s} {mae:8.1f} {rmse:8.1f} {mape:7.2f} {tacc:8.3f} {tf1:7.3f} {cov:8.3f}")
+    json.dump(res, open("forecast_metrics.json", "w"), indent=2)
+    print("\nSaved forecast_metrics.json")
+
+
+if __name__ == "__main__":
+    main()

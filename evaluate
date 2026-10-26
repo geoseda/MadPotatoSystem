@@ -1,0 +1,176 @@
+"""
+evaluate_nlp.py  -  Train and evaluate the MAPO Assistant intent classifier
+(TF-IDF + Multinomial Logistic Regression) for CPE 412 section 2.4.
+
+Usage
+-----
+    python evaluate_nlp.py                    # uses built-in query generator
+    python evaluate_nlp.py --csv queries.csv  # uses your own labelled queries
+
+queries.csv format (header required):  query,intent
+    "what is the sales for october 16",date_sales
+    "how much stock of medio is left",inventory_stocks
+
+Outputs
+-------
+  - console: accuracy, macro/weighted precision, recall, F1, per-class report,
+             5-fold stratified cross-validation, confusion matrix
+  - nlp_metrics.json, nlp_confusion_matrix.png
+  - nlp_pipeline.joblib  (same filename app.py loads)
+"""
+import argparse
+import json
+import random
+
+import joblib
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, precision_recall_fscore_support)
+from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
+from sklearn.pipeline import Pipeline
+
+SEED = 42
+INTENTS = ["inventory_stocks", "date_sales", "today", "tomorrow", "week", "month", "targets"]
+
+# ---------------------------------------------------------------- query generator
+ITEMS = ["medio", "grande", "jumbo", "mega", "2xl", "3xl", "juice cups", "fries",
+         "chicken poppers", "jumbo juice", "bottled water", "cups"]
+DATES = ["october 16", "oct 3", "16 october", "2026-10-16", "10/16/2026", "yesterday",
+         "march 5", "5th of june", "january 1", "last friday", "november 2 2025", "2025-12-25"]
+
+TEMPLATES = {
+    "inventory_stocks": [
+        "how many {i} are left", "show current inventory status", "what is the remaining stock of {i}",
+        "do we need to restock {i}", "which items are low on stock", "inventory report",
+        "how much {i} do we have", "stock level for {i}", "what should i order today",
+        "check remaining {i}", "is {i} running low", "list items needing restock",
+        "show me the stocks", "how many cups of {i} remain", "current stock of {i} please",
+        "what items need ordering", "ending stock for {i}", "any low inventory"],
+    "date_sales": [
+        "what is the sales for {d}", "how much did we earn on {d}", "sales on {d}",
+        "revenue for {d}", "how much did we make on {d}", "total income on {d}",
+        "show sales of {d}", "what were the sales on {d}", "earnings for {d}",
+        "how much sales did the store have on {d}", "give me the revenue of {d}"],
+    "today": [
+        "what is today's sales forecast", "predict today's sales", "how much will we earn today",
+        "today's prediction", "forecast for today", "expected sales today",
+        "what do you expect for today", "projected revenue today", "will today be a good day",
+        "today's sales outlook", "how will today perform"],
+    "tomorrow": [
+        "what is tomorrow's forecast", "predict tomorrow's sales", "how much will we make tomorrow",
+        "sales forecast for tomorrow", "tomorrow's prediction", "expected revenue tomorrow",
+        "what do you expect tomorrow", "will tomorrow be a good day", "tomorrow's sales outlook",
+        "projected sales for tomorrow", "next day forecast"],
+    "week": [
+        "what is next week's forecast", "predict sales for the next 7 days", "weekly sales outlook",
+        "how much will we earn this coming week", "7 day forecast", "projected revenue for the week",
+        "forecast for next week", "weekly prediction", "how will the week perform",
+        "expected sales for the next seven days", "next week projection"],
+    "month": [
+        "what is next month's forecast", "predict sales for the next 30 days", "monthly sales outlook",
+        "how much will we earn this month", "30 day forecast", "projected revenue for the month",
+        "forecast for next month", "monthly prediction", "how will the month perform",
+        "expected sales for the next thirty days", "next month projection"],
+    "targets": [
+        "what are the sales targets", "show performance tiers", "what is the benchmark for a good day",
+        "what counts as underperforming", "show me the targets", "what is the operating deficit threshold",
+        "explain the performance benchmarks", "what sales are considered acceptable",
+        "how are days classified", "what is a high performing day", "list the tiers"],
+}
+PREFIX = ["", "", "", "please ", "hey, ", "can you tell me ", "mapo, ", "quick question: "]
+SUFFIX = ["", "", "", "?", " please", " thanks", " now"]
+
+
+def generate(n_per_intent=140):
+    rng = random.Random(SEED)
+    rows = []
+    for intent, temps in TEMPLATES.items():
+        seen = set()
+        tries = 0
+        while len(seen) < n_per_intent and tries < n_per_intent * 40:
+            tries += 1
+            t = rng.choice(temps).format(i=rng.choice(ITEMS), d=rng.choice(DATES))
+            q = rng.choice(PREFIX) + t + rng.choice(SUFFIX)
+            if rng.random() < 0.15:                     # light typo noise
+                k = rng.randrange(len(q))
+                q = q[:k] + q[k + 1:]
+            seen.add(q.strip())
+        rows += [(q, intent) for q in seen]
+    return pd.DataFrame(rows, columns=["query", "intent"]).sample(frac=1, random_state=SEED)
+
+
+def build_pipeline():
+    return Pipeline([
+        ("tfidf", TfidfVectorizer(lowercase=True, ngram_range=(1, 2), sublinear_tf=True, min_df=1)),
+        ("clf", LogisticRegression(max_iter=2000, C=10.0, random_state=SEED)),  # multinomial (lbfgs)
+    ])
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--csv", help="labelled queries (query,intent)")
+    ap.add_argument("--test-size", type=float, default=0.2)
+    args = ap.parse_args()
+
+    df = pd.read_csv(args.csv) if args.csv else generate()
+    df = df.dropna().drop_duplicates("query")
+    print(f"Queries: {len(df)}   source: {'csv' if args.csv else 'generated templates'}")
+    print(df["intent"].value_counts().to_string(), "\n")
+
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        df["query"], df["intent"], test_size=args.test_size, stratify=df["intent"], random_state=SEED)
+
+    pipe = build_pipeline().fit(X_tr, y_tr)
+    pred = pipe.predict(X_te)
+    labels = [l for l in INTENTS if l in set(df["intent"])]
+
+    acc = accuracy_score(y_te, pred)
+    pm, rm, fm, _ = precision_recall_fscore_support(y_te, pred, average="macro", zero_division=0)
+    pw, rw, fw, _ = precision_recall_fscore_support(y_te, pred, average="weighted", zero_division=0)
+
+    print(f"Train {len(X_tr)} / Test {len(X_te)}")
+    print(f"Accuracy            : {acc:.4f}")
+    print(f"Precision (macro)   : {pm:.4f}   Recall (macro): {rm:.4f}   F1 (macro): {fm:.4f}")
+    print(f"Precision (weighted): {pw:.4f}   Recall (weighted): {rw:.4f}   F1 (weighted): {fw:.4f}\n")
+    print(classification_report(y_te, pred, labels=labels, digits=3, zero_division=0))
+
+    # 5-fold stratified cross-validation on the full set
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
+    cv_pred = cross_val_predict(build_pipeline(), df["query"], df["intent"], cv=skf)
+    cv_acc = accuracy_score(df["intent"], cv_pred)
+    _, _, cv_f1, _ = precision_recall_fscore_support(df["intent"], cv_pred, average="macro", zero_division=0)
+    print(f"5-fold CV  accuracy: {cv_acc:.4f}   macro-F1: {cv_f1:.4f}")
+
+    # confusion matrix
+    cm = confusion_matrix(y_te, pred, labels=labels)
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ax.imshow(cm, cmap="Greens")
+    ax.set_xticks(range(len(labels)), labels, rotation=45, ha="right")
+    ax.set_yticks(range(len(labels)), labels)
+    for i in range(len(labels)):
+        for j in range(len(labels)):
+            ax.text(j, i, cm[i, j], ha="center", va="center",
+                    color="white" if cm[i, j] > cm.max() / 2 else "black")
+    ax.set_xlabel("Predicted intent"); ax.set_ylabel("Actual intent"); ax.set_title("Confusion matrix (test set)")
+    fig.tight_layout(); fig.savefig("nlp_confusion_matrix.png", dpi=200)
+
+    rep = classification_report(y_te, pred, labels=labels, output_dict=True, zero_division=0)
+    json.dump({"n_train": len(X_tr), "n_test": len(X_te), "accuracy": acc,
+               "macro": {"precision": pm, "recall": rm, "f1": fm},
+               "weighted": {"precision": pw, "recall": rw, "f1": fw},
+               "cv5": {"accuracy": cv_acc, "macro_f1": cv_f1},
+               "per_class": {l: rep[l] for l in labels}}, open("nlp_metrics.json", "w"), indent=2)
+
+    # refit on ALL data and save the artifact app.py loads
+    joblib.dump(build_pipeline().fit(df["query"], df["intent"]), "nlp_pipeline.joblib")
+    print("\nSaved nlp_metrics.json, nlp_confusion_matrix.png, nlp_pipeline.joblib")
+
+
+if __name__ == "__main__":
+    main()
